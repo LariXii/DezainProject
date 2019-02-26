@@ -1,0 +1,417 @@
+body {
+    padding: 0;
+    margin: 0;
+    font-family: sans-serif;
+    background: url(../images/BGConnexion.jpg) no-repeat;
+    background-size:cover;
+    width:100vw;
+    height:100vh;
+}
+* {
+    box-sizing: border-box;   
+}
+
+body > div, body > input[type=radio] {
+    display: none;   
+}
+        
+input[type=radio]:checked + div {
+    display: block;   
+}
+        
+#logScreen {
+    position:relative;
+    width: 100%;
+    height: 100%;
+}
+
+#menu {
+    width: 710px;
+    height: 600px;
+    margin: auto;
+    position: relative;
+    background-color: rgba(181,224,231,0.5);
+    padding: 5px;
+    margin-top: 100px;
+    box-shadow: 0px 0px 2px grey;
+}
+
+#log {
+	position:relative;
+	float:left;
+	height:90%;
+	width:50%;
+}
+
+#formulaire {
+    position: relative;
+    width: 300px;
+    height: 330px;
+    float: right;
+    box-shadow: 0px 0px 2px grey;
+    top: 126px;
+    left: -51px;
+}
+
+#formulaire div{
+	margin:5px;
+	padding-left:5px;
+
+}
+
+#formulaire h2{
+	text-align:center;
+}
+
+#formulaire .bouton {
+    display: inline-block;
+    border: solid 1px white;
+    padding: 1vh 2vh;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    width: auto;
+    box-shadow: 0px 0px 5px white;
+}
+
+#bcConnexion {
+    position: relative;
+    width: 250px;
+    height: 240px;
+    box-shadow: 0px 0px 2px grey;
+    text-align: center;
+    margin: auto;
+    padding: 5px;
+    top: 20px;
+}
+
+#param{
+    position: relative;
+    width: 250px;
+    height: 240px;
+    box-shadow: 0px 0px 2px grey;
+    margin: auto;
+    padding: 5px;
+    top: 50px;
+}
+
+#invite {
+    position: absolute;
+    width: fit-content;
+    height: fit-content;
+    box-shadow: 0px 0px 2px grey;
+    margin: auto;
+    top: 30vh;
+    left: 40vw;
+    padding: 10px;
+}
+
+#invite #connexion{
+	width:fit-content;
+	height:fit-content;
+	text-align:center;
+	position:relative;
+}
+
+#invite #bcAvatar{
+	width:fit-content;
+	height:fit-content;
+	text-align:center;
+	position:relative;
+	margin:auto;
+}
+
+#btnJouer {
+    width: 100%;
+    border: none;
+    margin-top: 6px;
+}
+#btnJouer:hover{
+    border: 1px solid #ca4a21;
+}
+
+.connexion{
+    text-align: center;
+    position: absolute;
+    width: 100%;
+    height:35%;
+}
+
+.bcAvatar{
+    text-align: center;
+    position: absolute;
+    width: 100%;
+    height:35%;
+    top:35%;
+}
+
+.choixAvatar{
+	margin:auto;
+    min-width: 150px;
+}
+
+.arrowLeft{
+	position:relative;
+	transform:rotate(0.5turn);
+	top:-15px;
+}
+
+.arrowRight{
+	position:relative;
+	top:-15px;
+}
+
+#createGame{
+    position: relative;
+    text-align: center;
+    width: -webkit-fill-available;
+    border: none;
+    top: 28px;
+}
+
+#createGame:hover{
+    border: 1px solid #ca4a21;
+}
+
+#logParam {
+	background: url(../images/BGConnexion.jpg);
+    background-size:cover;
+    position: absolute; 
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+}
+
+#connexion input{
+    padding: 3px;
+    font-size: 80%;
+    margin: 10px;
+}
+
+#creePartie{
+	width:100%;
+	height:10%;
+	top:90%;
+	position:relative;
+	text-align:center;
+}
+
+#creePartie input{
+	text-align:center;
+	position:absolute;
+}
+/*#creePartie input[type=button]{
+	position:relative;
+    padding: 3px;
+    font-size: 80%;
+    margin: auto;
+}*/
+
+#logGame {
+    padding: 0;
+    margin: 0;
+    height: 100vh;
+    width: 100vw;
+    font-family: sans-serif;
+   /* background-image: url("../images/BackG_main.jpg");*/
+    background-repeat: no-repeat;
+    background-size: cover; /* Resize the background image to cover the entire container */
+    
+}
+
+* {
+    box-sizing: border-box;   
+}
+
+
+
+.containerGame {
+    background-color: #ffffff;
+    border: 1px solid black;
+    width: 1500px;
+    height: 75vh;
+    margin: auto;
+    margin-top: 50px;
+}
+#gameHeader{
+    background-color: #ffffff;
+    border: 3px solid black;
+    opacity: 0.6;
+    width: 100%;
+    height: 10%;
+    position: relative;
+    float: left;
+}
+
+#toolbox {
+    position: relative;
+    float: left;
+    top: 30px;
+}
+
+#gameHeader p{
+    width: -moz-fit-content;
+    float: left;
+}
+
+#playerList{
+    background-color: #ffffff;
+    border: 3px solid black;
+    opacity: 0.6;
+    width: 346px;
+    height: 90%;
+    position: relative;
+    box-sizing: border-box;
+    float: left;
+    overflow-y: auto;
+    line-height: 1.2;
+    display: inline;
+}
+.player{
+    background-color: #ffffff;
+    border: 3px solid black;
+    width: 280px;
+    height: 60px;
+    min-width: fit-content;
+    position: relative;
+    box-sizing: border-box;
+    display: -webkit-inline-box;
+}
+.rank{
+    position: relative;
+    display: inline;
+    width: 50px;
+    border: 1px solid black;
+    float: left;
+    margin: 2px;
+    font-size: xx-large;
+    font-weight: bolder;
+    padding: 5px;
+}
+.name{
+    width: 150px;
+    position: relative;
+    display: inline;
+    margin: 2px;
+    float: left;
+    font-family: monospace;
+    font-size: x-large;
+    font-weight: 600;
+    padding: 10px;
+}
+
+.score{
+    width: 70px;
+    position: relative;
+    display: inline;
+    margin: 2px;
+    float: right;
+    font-family: monospace;
+    font-size: xx-large;
+    font-weight: 500;
+    padding: 10px;
+}
+#playerList .avatar{
+    position: relative;
+    display: inline;
+    float: left;
+    margin: 2px;
+    height: 50px;
+}
+#text p{
+    margin:0;
+}
+
+#text{
+    height: 90%;
+    width: 295px;
+    position: relative;
+    overflow-y: auto;
+    line-height: 1.2;
+    padding: 2px;
+    overflow-x: hidden;
+}
+
+
+#textList {
+    background-color: #ffffff;
+    border: 3px solid black;
+    opacity: 0.8;
+    width: 300px;
+    height: 90%;
+    position: relative;
+    box-sizing: border-box;
+    float: right;
+}
+
+#send {
+    background-color: #ffffff;
+    border: 3px solid black;
+    opacity: 0.8;
+    width: 100%;
+    height: 10%;
+    position : relative;
+    box-sizing: border-box;
+    vertical-align: bottom;
+}
+#dessinateur{
+    position: relative;
+    width: 827px;
+    float: left;
+    margin: 12px;
+}
+
+#canvas{
+    width: 100%;
+    height: 530px;
+}
+
+#dessinateur canvas {
+    cursor: none;
+    border: solid 1px #000;
+    width: 100%;
+    height: 527px;
+    position: absolute;
+}
+#dessinateur canvas#overlay {
+    opacity: 0.8;
+}
+#dessinateur canvas#dessin {
+    background-image: url('../images/bgDessin.png');
+    background-size: 50px 50px;
+    background-repeat: repeat;
+}
+
+
+/** TOOLBOX **/
+#toolbox > * {
+    position: relative;
+    width: 40px;
+    box-sizing: border-box;
+    height: 40px;
+    background-size: cover;
+    float: left;
+    margin: 2px;
+}
+#toolbox input:not([type=range]) {
+    display: none;
+}   
+#toolbox input[type=range] {
+    margin: 0;
+}
+#toolbox label[for] {
+    border: solid 1px #000;
+}   
+#toolbox label[for=tracer] {
+    background-image: url(../images/icone-pinceau.png);   
+}
+#toolbox label[for=gommer] {
+    background-image: url(../images/icone-gomme.png);   
+}
+#toolbox label[for=ligne] {
+    background-image: url(../images/icone-trait.png);   
+}
+#toolbox input:checked + label[for] {
+    box-shadow: blue 0 0 5px;
+}  

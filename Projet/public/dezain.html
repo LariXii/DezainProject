@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dezain</title>
+    <link rel="stylesheet" href="./styles/dezain.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./js/dezain.js"></script>
+</head>
+
+<body>
+    <input type="radio" name="btnScreen" id="radio1">
+    	<div id="menu">
+		  	<div id="log">
+		  		<div id="bcConnexion">
+						<div id="connexion">
+							<p>Choisissez votre pseudo : <br>
+							<input type="text" id="pseudoCrea" placeholder="Tapez ici votre pseudo" size="30"  maxLength="12">
+							</p>
+						</div>
+						<div id="bcAvatar">
+							<p>Choisissez votre avatar :</p>
+							<div id="choixAvatar">
+								<img width ="20" src="./images/arrow.png" class="arrowLeft">
+								<img width="85" src="./images/avatar2.png" class="avatar">
+								<img width ="20" src="./images/arrow.png"class="arrowRight" >
+							</div>
+						</div>
+					</div>
+					<div id="param">
+					<div><p>Nombre de joueur : 4</p>
+					<input type='range' id="btnNombreJoueur" min="2" max ="10" value="4">
+					</div>
+					<div><p>Nombre de manche : 2</p>
+					<input type='range' id="btnNombreManche" min="1" max ="10" value="2">
+					</div>
+					<div><p>Durée d'un tour : 30s </p>
+					<input type='range' id="btnDureeTour" min="15" max ="120" step="5" value="30">
+					</div>
+					</div>
+		</div>
+		<div id="formulaire">
+			<form>
+		
+			<H2>Options</H2>
+			<div>
+			    <p>Alphabet :</p>
+			    <label><input type="radio" name="radGlyphe" value="hiragana" checked> hiragana</label>
+			    <label><input type="radio" name="radGlyphe" value="katakana"> katakana</label>
+			    <label><input type="radio" name="radGlyphe" value="les2"> les deux</label>
+			</div>
+		
+			<div hidden>
+			    <label><input type="checkbox" value="[aiueon]" checked disabled> a, i, u, e, o, n</label>
+			</div>
+			<div>
+			    <p>Suffixes :</p> 
+			    <label><input type="checkbox" value="[b-z]{1,2}a"> .a</label>
+			    <label><input type="checkbox" value="[b-z]{1,2}i"> .i</label>
+			    <label><input type="checkbox" value="[b-z]{1,2}u"> .u</label>
+			    <label><input type="checkbox" value="[b-z]{1,2}e"> .e</label>
+			    <label><input type="checkbox" value="[b-z]{1,2}o"> .o</label>
+			</div>
+			<div>
+			    <p>Préfixes :</p> 
+			    <table>
+				<tr>
+				    <td><label><input type="checkbox" value="[kg][aiueo]"> k. g.</label></td>
+				    <td><label><input type="checkbox" value="[kzj].?[aiueo]"> s. z.</label></td>
+				    <td><label><input type="checkbox" value="[tcd].?[aiueo]"> t. d.</label></td>
+				</tr>
+				<tr>
+				    <td><label><input type="checkbox" value="n[aiueo]"> n.</label></td>
+				    <td><label><input type="checkbox" value="[hfbp][aiueo]"> h./f. b. p.</label></td>
+				    <td><label><input type="checkbox" value="m[aiueo]"> m.</label></td>
+				</tr>
+				<tr>
+				    <td><label><input type="checkbox" value="y[aiueo]"> y.</label></td>
+				    <td><label><input type="checkbox" value="r[aiueo]"> r.</label></td>
+				    <td><label><input type="checkbox" value="w[aiueo]"> w.</label></td>
+				</tr>
+			    </table>
+			</div>
+		    </form>
+    		</div>
+    		<input type="button" value="CREER UNE PARTIE" id="createGame">
+    	</div>
+    <input type="radio" name="btnScreen" id="radio3">
+    <div id="invite">
+						<div id="connexion">
+							<p>Choisissez votre pseudo : <br>
+							<input type="text" id="pseudoInv" placeholder="Tapez ici votre pseudo" size="30" maxLength="12">
+							</p>
+						</div>
+						<div id="bcAvatar">
+							<p>Choisissez votre avatar :</p>
+							<div id="choixAvatar">
+								<img width ="20" src="./images/arrow.png" class="arrowLeft">
+								<img width="85" src="./images/avatar2.png" class="avatar">
+								<img width ="20" src="./images/arrow.png"class="arrowRight" >
+							</div>
+						</div>
+						<input type="button" value="PLAY" id="btnJouer">
+    </div>
+    <input type="radio" name="btnScreen" id="radio2">
+    <div id="logGame">
+    <main>
+        <div class="containerGame">
+                <div id="gameHeader"><p></p>
+				</div>
+                <div id="playerList">
+                </div>
+                <div id="dessinateur">
+					<div id="canvas">
+						<canvas id="dessin" width="500" height="500"></canvas>
+						<canvas id="overlay" width="500" height="500"></canvas>
+					</div>
+					<div id="toolbox" hidden>
+						<input type="radio" name="radCommande" id="tracer" checked> <label for="tracer"></label>
+						<input type="radio" name="radCommande" id="gommer"> <label for="gommer"></label>
+						<input type="radio" name="radCommande" id="ligne">  <label for="ligne"></label>
+						<input type="range" id="size" min="1" max="50" value="5">
+					</div>
+				</div>
+                <div id="textList">
+					<div id="text">
+					</div>
+                        
+                <div id="send">
+                	<input type="text" id="monMessage" size= "15">
+               		<input type="button" value="Envoyer" id="btnEnvoyer">   
+               	</div>     
+                </div>
+        </div>
+        </main>
+        </div>
+</body>
+
+</html>
