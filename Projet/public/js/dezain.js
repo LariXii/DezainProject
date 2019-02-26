@@ -141,6 +141,12 @@ document.addEventListener('DOMContentLoaded',function(){
         	document.getElementById('toolbox').visible = true;
         	document.getElementById('toolbox').hidden = false;
 		});
+
+		socket.on('joueur',function(){
+			console.log('Hello mec smeh t\'es qu\'un jouer');
+			document.getElementById('toolbox').hidden = true;
+		});
+
 var arrowL = document.getElementsByClassName('arrowLeft');
 var arrowR = document.getElementsByClassName('arrowRight');
 for(var i =0;i<2;i++){

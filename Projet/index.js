@@ -11,7 +11,7 @@ var io = require('socket.io').listen(server);
 // Configuration d'express pour utiliser le répertoire "public"
 app.use(express.static('public'));
 // set up to 
-app.get('/', function(req, res) {  
+app.get('/', function(req, res) {
     res.sendFile(__dirname + '/public/dezain.html');
 });
 
@@ -25,61 +25,149 @@ var Jeu = {
     nomCreateur : undefined,
     nompartie : undefined,
     nbManche : undefined,
-    nbJoueur : undefined,
+    nbJoueurMax : undefined,
+    nbJoueur : 0,
     tpsTour : undefined,
     alphabet : undefined,
-    temps : undefined,
     enJeu : false,
+    finManche : false,
     t_nomJoueurs : [],
-    t_doisJouer :[],
     ensembleJoueurs : {},
     setOptions : function(nomCreateur,nbManche,nbJoueur,tpsTour,alphabet){
         Jeu.nomCreateur = nomCreateur;
         Jeu.nompartie = 'Partie de '+nomCreateur;
         Jeu.nbManche = nbManche;
-        Jeu.nbJoueur = nbJoueur;
+        Jeu.nbJoueurMax = nbJoueur;
         Jeu.tpsTour = tpsTour;
         Jeu.alphabet = alphabet;
     },
     ajoutJoueur : function(joueur){
-        Jeu.ensembleJoueurs[joueur.getNom()]=joueur
-        Jeu.t_nomJoueurs.push(joueur.getNom());
-        Jeu.t_doisJouer.push(joueur.getNom());
+        Jeu.ensembleJoueurs[joueur.getNom()]=joueur;
+        if(!Jeu.enJeu){
+            Jeu.t_nomJoueurs.push(joueur.getNom());
+        }
+        this.nbJoueur++;
     },
     deconnecterJoueur : function(joueur){
         delete Jeu.ensembleJoueurs[joueur];
-        console.log(Jeu);
+        t_nomJoueurs = Object.keys(Jeu.ensembleJoueurs);
+        this.nbJoueur--;
+        console.log(t_nomJoueurs);
     },
-    lancerChrono : function(tps){
-        Jeu.temps = tps - 1;
-        if(Jeu.temps > -1)
-            io.sockets.emit('temps',Jeu.temps);
+    manche : {
+        t_doisJouer : [],
+        nonDessinateur : [],
+        Start: function(t_nomJoueurs){
+            this.t_doisJouer = t_nomJoueurs;
+            for(var i in this.t_doisJouer){
+                this.nonDessinateur.push(Jeu.ensembleJoueurs[this.t_doisJouer[i]]);
+            }
+            Jeu.tour.setTour();
+        },
+    },
+    tour : {
+        setTour(){
+            console.log('DOIT JOUER : ',Jeu.manche.t_doisJouer);
+            var joueurs = [];
+            for(var i in Jeu.manche.t_doisJouer) {
+                Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]].dessinateur = false;
+                if(!Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]].aEteDrawer){
+                    joueurs.push(Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]]);
+                }
+            }
+            console.log('JOUEURS : ',joueurs);
+            var t = Object.keys(joueurs);
+            var min = Math.ceil(0);
+            var max = Math.floor(t.length);
+            var rand = Math.floor(Math.random() * (max - min)) + min;
+            /*Tirage aléatoire du dessinateur*/
+            var drawer = Jeu.ensembleJoueurs[joueurs[rand].nom];
+            console.log('DOIT DESSINER : ',drawer.nom);
+            drawer.dessinateur = true;
+            drawer.aEteDrawer = true;
+            console.log('JOUEURS :',joueurs);
+            /*On supprime le dessinateur de la liste des joueurs à jouer*/
+            clients[drawer.nom].emit('dessinateur');
+            joueurs = [];
+            for(var i in joueurs){
+                if(!joueurs[i].dessinateur){
+                    clients[joueurs[i].nom].emit('joueur');
+                    joueurs.push(joueurs[i].nom);
+                }
+            }
+            Jeu.tour.Start(Jeu.tpsTour,joueurs,drawer);
+        },
+        Start: function(tpsTour,joueurs,dessinateur){
+            Jeu.enJeu = true;
+            Jeu.chrono.Start(tpsTour);
+            console.log('joueurs du tour :',joueurs);
+        },
+    },
+    chrono : {
+            secondsLeft: 0,
+            timer: undefined,
+
+            Start: function(secondsLeft) {
+                //Initialisation du nombre de secondes selon la valeur passée en paramètre
+                this.secondsLeft = secondsLeft;
+                //Démarrage du chrono
+                this.timer = setInterval(this.Tick.bind(this), 1000);
+            },
+
+            Tick: function() {
+                //On actualise la valeur affichée du nombre de secondes
+                io.sockets.emit('temps',--this.secondsLeft);
+                if(this.secondsLeft === 0){
+                    //Tps écoulé -> arrêt du timer
+                    this.Stop();
+                    if(Jeu.manche.t_nonJouer.length === 0){
+                        Jeu.finManche = true;
+                        console.log("Fin de manche");
+                    }else{
+                        console.log('Fin de tour');
+                        Jeu.tour.setTour();
+                    }
+                }
+
+            },
+
+            Stop: function() {
+                //quand le temps est écoulé, on arrête le timer
+                clearInterval(this.timer);
+                //Et on appelle la fonction qui gère la fin du temps imparti et poursuit le traitement
+                //Ici, pour le test, simplement une fonction alert
+                //console.log('Fin de manche');
+            }
+
+        /*Jeu.temps = tps;
         //Reactualisation du chrono si different de 0.
-        if ( tps > 0)
+        if ( Jeu.temps > 0)
         {
-            setTimeout(function(){Jeu.lancerChrono(Jeu.temps);}, 1000);
-        }
-        else{
+            io.sockets.emit('temps',Jeu.temps);
+            setTimeout(function(){Jeu.lancerChrono(Jeu.temps--);}, 1000);
+        }else{
             io.sockets.emit('tempsEcoule');
-        }
-    },
-    lancerTour(){
+        }*/
+    }
+   /* lancerTour(){
         Jeu.enJeu = true;
-        Jeu.lancerChrono(Jeu.tpsTour);
-    },
-    lancerManche(){
+        Jeu.chrono.Start(Jeu.tpsTour);
         var min = Math.ceil(0);
         var max = Math.floor(Jeu.t_doisJouer.length);
         var rand = Math.floor(Math.random() * (max - min)) + min;
-        console.log(Jeu.t_nomJoueurs[rand]+' est le dessinateur');
+        //Tirage aléatoire du dessinateur
+        console.log(Jeu.t_nomJoueurs[rand]+' est
+        le dessinateur');
         var dessinateur = Jeu.t_nomJoueurs[rand];
         Jeu.t_doisJouer.splice(rand,1);
+        //On supprime le dessinateur de la liste des joueurs à jouer
         console.log(Jeu.t_doisJouer);
         clients[Jeu.ensembleJoueurs[dessinateur].nom].emit('dessinateur');
-        if(Jeu.t_doisJouer.length != 0){
-            setTimeout(function(){Jeu.lancerManche();},360);
-        }
-    }
+    },
+    lancerManche(){
+        Jeu.t_doisJouer = Jeu.t_nomJoueurs;
+        setTimeout(function(){Jeu.lancerTour();},5000);
+    }*/
 };
 
 class Joueur {
@@ -91,6 +179,7 @@ class Joueur {
         this.nombreEssai = 3;
         this.dessinateur = false;
         this.trouveSolution = false;
+        this.aEteDrawer = false;
     }
     setNom(nom){
         this.nom = nom;
@@ -142,18 +231,16 @@ io.on('connection', function (socket) {
     socket.on("creerPartie", function(options) {
         Jeu.setOptions(options.createur,options.nbManche,options.nbJoueur,options.tpsTour);
         console.log("Nouveau jeu créé par " + Jeu.nomCreateur);
-        console.log(Jeu);
     });
 
     socket.on("verif",function(){
-        if(Object.keys(Jeu.ensembleJoueurs).length+1 < Jeu.nbJoueur){
+        if(Object.keys(Jeu.ensembleJoueurs).length+1 < Jeu.nbJoueurMax){
             socket.emit("check",true);
         }
         else {
-            if(Object.keys(Jeu.ensembleJoueurs).length+1 == Jeu.nbJoueur) {
+            if(Object.keys(Jeu.ensembleJoueurs).length+1 == Jeu.nbJoueurMax) {
                 socket.emit("check",true);
                 console.log('Le jeu va se lancer');
-                //Jeu.lancerTour();
             }
             else{
                 socket.emit("check",false);
@@ -181,15 +268,15 @@ io.on('connection', function (socket) {
         });
         // envoi de la nouvelle liste à tous les clients connectés
         io.sockets.emit("liste", Jeu.ensembleJoueurs);
-        if (Object.keys(Jeu.ensembleJoueurs).length == Jeu.nbJoueur){
-            setTimeout(function(){Jeu.lancerManche();},50);
-         }
+        if (Object.keys(Jeu.ensembleJoueurs).length == Jeu.nbJoueurMax){
+           setTimeout(function(){Jeu.manche.Start(Jeu.t_nomJoueurs);},50);
+        }
     });
-    
-    
+
+
     /**
      *  Réception d'un message et transmission à tous.
-     *  @param  msg     Object  le message à transférer à tous  
+     *  @param  msg     Object  le message à transférer à tous
      */
     socket.on("message", function(msg) {
         console.log("Reçu message");
@@ -217,36 +304,39 @@ io.on('connection', function (socket) {
         }
         //}
     });
-    
 
-    /** 
+
+    /**
      *  Gestion des déconnexions
      */
-    
+
     // fermeture
-    socket.on("logout", function() { 
+    socket.on("logout", function() {
         // si client était identifié (devrait toujours être le cas)
         if (currentID) {
             console.log("Sortie de l'utilisateur " + currentID);
             // envoi de l'information de déconnexion
-            socket.broadcast.emit("message", 
+            socket.broadcast.emit("message",
                 { from: null, to: null, text: currentID + " a quitté la discussion", date: Date.now() } );
-                // suppression de l'entrée
+            // suppression de l'entrée
             delete clients[currentID];
             Jeu.deconnecterJoueur(joueur.getNom());
             // envoi de la nouvelle liste pour mise à jour
             socket.broadcast.emit("liste", Jeu.ensembleJoueurs);
+            if(Object.keys(Jeu.ensembleJoueurs).length === 0){
+                console.log("On supprime la partie");
+            }
         }
     });
-    
+
     // déconnexion de la socket
-    socket.on("disconnect", function(reason) { 
+    socket.on("disconnect", function(reason) {
         // si client était identifié
         if (currentID) {
             // envoi de l'information de déconnexion
-            socket.broadcast.emit("message", 
+            socket.broadcast.emit("message",
                 { from: null, to: null, text: currentID + " vient de se déconnecter de l'application", date: Date.now() } );
-                // suppression de l'entrée
+            // suppression de l'entrée
             delete clients[currentID];
             Jeu.deconnecterJoueur(joueur.getNom());
             // envoi de la nouvelle liste pour mise à jour
