@@ -86,7 +86,7 @@ var Jeu = {
     alphabet : undefined,
     enJeu : false,
     enTour : false,
-    finManche : false,
+    nbMancheJouer : 0,
     t_nomJoueurs : [],
     ensembleJoueurs : {},
     setOptions : function(nomCreateur,nbManche,nbJoueur,tpsTour,alphabet){
@@ -199,7 +199,6 @@ var Jeu = {
                 Jeu.manche.nonDessinateur.splice(i,1);
             }
         }
-        console.log(Jeu);
         if(Jeu.enTour){
             console.log(Jeu.tour.drawer);
             if(joueur === Jeu.tour.drawer){
@@ -207,16 +206,12 @@ var Jeu = {
                 console.log('Le dessinateur s\'est déconnecté');
                 if(Jeu.nbJoueur === 1){
                     Jeu.tour.Stop();
-                    Jeu.enJeu = false;
-                    console.log('Plus assez de joueur pour jouer la manche');
-                    io.sockets.emit('finManche',Jeu.ensembleJoueurs);
+                    Jeu.manche.fin();
                 }
             }
             if(Jeu.nbJoueur === 1){
                 Jeu.tour.Stop();
-                Jeu.enJeu = false;
-                console.log('Plus assez de joueur pour jouer la manche');
-                io.sockets.emit('finManche',Jeu.ensembleJoueurs);
+                Jeu.manche.fin();
             }
         }
     },
@@ -224,9 +219,11 @@ var Jeu = {
         t_doisJouer : [],
         nonDessinateur : [],
         Start: function(t_nomJoueurs){
+            console.log('La manche se lance');
             Jeu.enJeu = true;
             this.t_doisJouer = t_nomJoueurs;
-            console.log('JOUEUR DE LA MANCHE : ',this.t_doisJouer);
+            console.log('Les joueurs qui joueront sont : ',this.t_doisJouer);
+            io.sockets.emit('startManche');
             this.lancerTour();
         },
         lancerTour(){
@@ -236,8 +233,21 @@ var Jeu = {
                     this.nonDessinateur.push(Jeu.ensembleJoueurs[this.t_doisJouer[i]].nom);
                 }
             }
-            console.log('On lance un tour, ceux qui peuvent être dessinateur sont : ',this.nonDessinateur);
+            console.log('Les joueurs non dessinateur sont : ',this.nonDessinateur);
             Jeu.tour.setTour(this.nonDessinateur,this.t_doisJouer);
+        },
+        fin(){
+            Jeu.enJeu = false;
+            Jeu.nbMancheJouer++;
+            if(Jeu.nbMancheJouer == Jeu.nbManche){
+                io.sockets.emit('finJeu',Jeu.ensembleJoueurs);
+            }else{
+                io.sockets.emit('finManche',Jeu.ensembleJoueurs);
+                for(var i in Jeu.ensembleJoueurs){
+                    Jeu.ensembleJoueurs[i].aEteDrawer = false;
+                }
+                setTimeout(function(){Jeu.manche.Start(Jeu.t_nomJoueurs);},5000);
+            }
         },
     },
     tour : {
@@ -290,8 +300,8 @@ var Jeu = {
             Jeu.enTour = false;
             Jeu.chrono.Stop();
             Jeu.tour.CalculScore();
-            io.sockets.emit('finTour',Jeu.t_nomJoueurs);
             io.sockets.emit('liste',Jeu.ensembleJoueurs,Jeu.t_nomJoueurs);
+            io.sockets.emit('finTour',Jeu.t_nomJoueurs);
         },
         CalculScore(){
             console.log('Il y a eu ',this.nbTrouve,' joueur(s) qui ont trouvé la solution\nIl y a ',Jeu.nbJoueur,' joueur(s) dans la partie');
@@ -323,11 +333,10 @@ var Jeu = {
             io.sockets.emit('temps',--this.secondsLeft);
             if(Jeu.tour.nbBloque === Jeu.nbJoueur){
                 this.Stop();
+                //On regarde si il reste des dessinateurs potentiel
                 if(Jeu.manche.nonDessinateur.length-1 === 0){
-                    Jeu.finManche = true;
                     Jeu.tour.Stop();
-                    console.log("Fin de manche");
-                    io.sockets.emit('finManche',Jeu.ensembleJoueurs);
+                    Jeu.manche.fin();
                 }else{
                     Jeu.tour.Stop();
                     Jeu.manche.lancerTour();
@@ -336,10 +345,10 @@ var Jeu = {
                 if(this.secondsLeft === 0){
                     //Tps écoulé -> arrêt du timer
                     this.Stop();
+                    //On regarde si il reste des dessinateurs potentiel
                     if(Jeu.manche.nonDessinateur.length-1 === 0){
-                        Jeu.finManche = true;
-                        console.log("Fin de manche");
-                        io.sockets.emit('finManche',Jeu.ensembleJoueurs);
+                        Jeu.tour.Stop();
+                        Jeu.manche.fin();
                     }else{
                         Jeu.tour.Stop();
                         Jeu.manche.lancerTour();
@@ -389,7 +398,7 @@ class Joueur {
 }
 // Quand un client se connecte, on le note dans la console
 io.on('connection', function (socket) {
-    io.sockets.emit('test');
+   // io.sockets.emit('test');
     // message de debug
     if(Object.keys(Jeu.ensembleJoueurs).length === 0){
         socket.emit('createur');
@@ -410,20 +419,20 @@ io.on('connection', function (socket) {
     });
 
     socket.on("verif",function(){
-        console.log(socket);
-        if(Object.keys(Jeu.ensembleJoueurs).length === 0){
+        //if(Object.keys(Jeu.ensembleJoueurs).length === 0){
+        console.log(Object.keys(Jeu.ensembleJoueurs).length+1);
             if(Object.keys(Jeu.ensembleJoueurs).length+1 < Jeu.nbJoueurMax){
                 socket.emit("check",true);
             }
             else {
-                if(Object.keys(Jeu.ensembleJoueurs).length+1 === Jeu.nbJoueurMax) {
+                if(Object.keys(Jeu.ensembleJoueurs).length+1 == Jeu.nbJoueurMax) {
                     socket.emit("check",true);
                 }
                 else{
                     socket.emit("check",false);
                 }
             }
-        }
+        //}
 
     });
 
@@ -525,7 +534,7 @@ io.on('connection', function (socket) {
                 Jeu.chrono.Stop();
                 Jeu.enJeu = false;
                 Jeu.finManche = false;
-                delete Jeu;
+                Jeu = {};
                 console.log("On supprime la partie");
                 console.log(Jeu);
             }
@@ -549,7 +558,7 @@ io.on('connection', function (socket) {
                 Jeu.chrono.Stop();
                 Jeu.enJeu = false;
                 Jeu.finManche = false;
-                delete Jeu;
+                Jeu = {};
                 console.log("On supprime la partie");
                 console.log(Jeu);
             }
