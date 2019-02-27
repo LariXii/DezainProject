@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded',function(){
         	document.getElementById('toolbox').hidden = false;
 		});
 
-		socket.on('joueur',function(){
+	socket.on('joueur',function(){
 			console.log('Hello mec smeh t\'es qu\'un jouer');
 			document.getElementById('toolbox').hidden = true;
 		});
