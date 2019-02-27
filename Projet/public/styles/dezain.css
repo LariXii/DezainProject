@@ -383,6 +383,14 @@ input[type=radio]:checked + div {
     background-repeat: repeat;
 }
 
+#divScoreManche {
+	width:-moz-fit-content;
+	width:fit-content;
+	position:relative;
+	margin:auto;
+	box-shadow: 0px 0px 2px grey;
+	background-color: rgba(181,224,231,0.5);
+}
 
 /** TOOLBOX **/
 #toolbox > * {
@@ -414,4 +422,4 @@ input[type=radio]:checked + div {
 }
 #toolbox input:checked + label[for] {
     box-shadow: blue 0 0 5px;
-}  
+}
