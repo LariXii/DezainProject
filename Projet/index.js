@@ -1,4 +1,5 @@
-// Chargement des modules
+
+// Chargement des modules 
 var express = require('express');
 var app = express();
 var server = app.listen(8080, function() {
@@ -29,8 +30,9 @@ var Jeu = {
     nbJoueur : 0,
     tpsTour : undefined,
     alphabet : undefined,
+ 	//declaration du cbs
+    cbs : undefined,
     enJeu : false,
-    enTour : false,
     finManche : false,
     t_nomJoueurs : [],
     ensembleJoueurs : {},
@@ -40,57 +42,110 @@ var Jeu = {
         Jeu.nbManche = nbManche;
         Jeu.nbJoueurMax = nbJoueur;
         Jeu.tpsTour = tpsTour;
-        Jeu.alphabet = alphabet;
+      	Jeu.alphabet = alphabet;
+        //Jeu.cbs prend cette valeur
+        Jeu.cbs = cbs;
+        //nombre de checkbox valide mais les tableaux sont tous
+        console.log(cbs);
+       
+        /** Ensemble des glyphes */
+        var objGlyphes = null; 
+        
+        /** Dernier glyphe à faire deviner */
+        var last = null;
+
+        /**Fonction pour lancer les 3 caractères */
+        //change();
+        /** 
+             *  Change la lettre/syllabe à reconnaître. 
+             */
+            function change() {
+                // récupération de l'alphabet
+                alpha = null;
+                if (Jeu.alphabet == "les2") {
+                    Jeu.alphabet = (Math.random() < 0.5) ? 'hiragana' : 'katakana';   
+                }
+                if(Jeu.alphabet == 'hiragana'){
+                   objGlyphes =  new Glyphes(kanji.hiragana);
+                }else{
+                   objGlyphes = new Glyphes(kanji.katakana);
+                }
+                console.log("on Cherche des "+Jeu.alphabet);
+
+                var aTrouver = objGlyphes.getThreeGlyphes(last, alphabet);
+               
+            }
+
+                /**
+         *  Classe représentant l'ensemble des glyphes
+         */
+        function Glyphes(glyphes) {
+            /** 
+             *  Clés des glyphes éligibles par rapport aux options actuellement sélectionnées
+             *  (fonction privée -- interne à la classe)
+             */
+            var getGlyphKeys = function() {
+                //Ici cbs devrais contenir les valeurs des inputs
+                var cbs = Jeu.cbs;
+                return Object.keys(glyphes).filter(function(elem, _index, _array) {
+                    // closure qui s'appuie sur les checkbox qui ont été sélectionnées (cbs)
+                    for (var i=0; i < cbs.length; i++) {
+
+                        // on vérifie si la clé (elem) matche la regex définie comme valeur de la checkbox
+                        var patt = new RegExp("\\b" + cbs[i].value + "\\b", "g");
+                        if (patt.test(elem)) {
+                            return true;   
+                        }
+                    }
+                    return false;
+                });
+            }
+            
+            
+            /** 
+             *  Choisit trois glyphes différents entre elles et différentes de celle dont la clé
+             *  est passée en paramètre
+             *  @param old          String  clé du glyphe 
+             *  @param alphabet     String  alphabet considéré
+             */
+            this.getThreeGlyphes = function(old, alphabet) {
+                var eligible = getGlyphKeys();
+                var aTrouver = [];
+                var aEviter = [old]; 
+                var key;
+                
+               
+                for (var i=0; i < 3; i++) {
+                    do {
+                        key = eligible[Math.random() * eligible.length | 0];
+                    }
+                    while (aEviter.indexOf(key) >= 0);
+                    aEviter.push(key);
+                    aTrouver[i] = { key: key, ascii: glyphes[key] };
+                   
+                }
+                
+                return aTrouver;
+            }
+        }
     },
     ajoutJoueur : function(joueur){
-    	this.nbJoueur++;
-    	joueur.setRank(this.nbJoueur);
         Jeu.ensembleJoueurs[joueur.getNom()]=joueur;
         if(!Jeu.enJeu){
             Jeu.t_nomJoueurs.push(joueur.getNom());
         }
+        this.nbJoueur++;
     },
     deconnecterJoueur : function(joueur){
-    	console.log(joueur," se déconnecte");
         delete Jeu.ensembleJoueurs[joueur];
         t_nomJoueurs = Object.keys(Jeu.ensembleJoueurs);
         this.nbJoueur--;
-        for(var i in Jeu.manche.t_doisJouer){
-        	if(Jeu.manche.t_doisJouer[i] === joueur){
-        		Jeu.manche.t_doisJouer.splice(i,1);
-        	}
-        }
-        for(var i in Jeu.manche.nonDessinateur){
-        	if(Jeu.manche.nonDessinateur[i] === joueur){
-        		Jeu.manche.nonDessinateur.splice(i,1);
-        	}
-        }
-        console.log(Jeu);
-        if(Jeu.enTour){
-        	console.log(Jeu.tour.drawer);
-        	if(joueur === Jeu.tour.drawer){
-			Jeu.tour.Stop();
-			console.log('Le dessinateur s\'est déconnecté');
-			if(Jeu.nbJoueur === 1){
-				Jeu.tour.Stop();
-				Jeu.enJeu = false;
-				console.log('Plus assez de joueur pour jouer la manche');
-				io.sockets.emit('finManche',Jeu.ensembleJoueurs);
-			}
-        	}
-        	if(Jeu.nbJoueur === 1){
-			Jeu.tour.Stop();
-			Jeu.enJeu = false;
-			console.log('Plus assez de joueur pour jouer la manche');
-			io.sockets.emit('finManche',Jeu.ensembleJoueurs);
-        	}
-        }
+        console.log(t_nomJoueurs);
     },
     manche : {
         t_doisJouer : [],
         nonDessinateur : [],
         Start: function(t_nomJoueurs){
-            Jeu.enJeu = true;
             this.t_doisJouer = t_nomJoueurs;
             console.log('JOUEUR DE LA MANCHE : ',this.t_doisJouer);
             this.lancerTour();
@@ -107,14 +162,7 @@ var Jeu = {
         },
     },
     tour : {
-    		drawer : undefined,
-    		joueursTour : [],
-    		solution : /^ra$/,
-    		nbTrouve : 0,
         setTour(joueursNonDrawer,joueurDuTour){
-        	for(var j in Jeu.ensembleJoueurs){
-        		Jeu.ensembleJoueurs[j].trouveSolution = false;
-        	}
             for(var i in joueurDuTour) {
                 Jeu.ensembleJoueurs[joueurDuTour[i]].dessinateur = false;
             }
@@ -125,46 +173,25 @@ var Jeu = {
             var max = Math.floor(joueursNonDrawer.length);
             var rand = Math.floor(Math.random() * (max - min)) + min;
             /*Tirage aléatoire du dessinateur*/
-            this.drawer = joueursNonDrawer[rand];
-            console.log('DESSINATEUR : ',this.drawer);
-            Jeu.ensembleJoueurs[this.drawer].dessinateur = true;
-            Jeu.ensembleJoueurs[this.drawer].aEteDrawer = true;
-	    clients[this.drawer].emit('dessinateur');
-            this.joueursTour = [];
+            var drawer = joueursNonDrawer[rand];
+            console.log('DESSINATEUR : ',drawer);
+            Jeu.ensembleJoueurs[drawer].dessinateur = true;
+            Jeu.ensembleJoueurs[drawer].aEteDrawer = true;
+	    clients[drawer].emit('dessinateur');
+
+            var joueursTour = [];
             for(var i in Jeu.manche.t_doisJouer){
                 if(Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]].dessinateur === false){
                     clients[Jeu.manche.t_doisJouer[i]].emit('joueur');
-                    this.joueursTour.push(Jeu.manche.t_doisJouer[i]);
+                    joueursTour.push(Jeu.manche.t_doisJouer[i]);
                 }
             }
-            Jeu.tour.Start(Jeu.tpsTour,this.joueursTour,this.drawer);
+            Jeu.tour.Start(Jeu.tpsTour,joueursTour,drawer);
         },
         Start: function(tpsTour,joueurs,dessinateur){
-            Jeu.enTour = true;
+            Jeu.enJeu = true;
             Jeu.chrono.Start(tpsTour);
             console.log('joueurs du tour :',joueurs);
-        },
-        Stop(){
-        	console.log('Fin du tour');
-        	Jeu.enTour = false;
-        	Jeu.chrono.Stop();
-        	Jeu.tour.CalculScore();
-        	this.nbTrouve = 0;
-        	io.sockets.emit('clear');
-        	io.sockets.emit('liste',Jeu.ensembleJoueurs);
-        },
-        CalculScore(){
-        	console.log('Il y a eu ',this.nbTrouve,' joueur(s) qui ont trouvé la solution\nIl y a ',Jeu.nbJoueur,' joueur(s) dans la partie');
-        	Jeu.ensembleJoueurs[Jeu.tour.drawer].score += 100*(this.nbTrouve/Jeu.nbJoueur);
-        	console.log('Le dessinateur est ',Jeu.tour.drawer,' il a gagné ',Jeu.ensembleJoueurs[Jeu.tour.drawer].score,'points');
-        	Jeu.t_nomJoueurs.sort(function(a,b){
-        		return Jeu.ensembleJoueurs[b].score - Jeu.ensembleJoueurs[a].score;
-        	});
-        	var rank = 1;
-        	for(var i in Jeu.t_nomJoueurs){
-			Jeu.ensembleJoueurs[Jeu.t_nomJoueurs[i]].rank = rank;
-			rank++;
-        	}
         },
     },
     chrono : {
@@ -181,42 +208,57 @@ var Jeu = {
             Tick: function() {
                 //On actualise la valeur affichée du nombre de secondes
                 io.sockets.emit('temps',--this.secondsLeft);
-                if(Jeu.tour.nbTrouve === Jeu.nbJoueur-1){
-                	this.Stop();
-                	if(Jeu.manche.nonDessinateur.length-1 === 0){
-		                Jeu.finManche = true;
-		                Jeu.tour.Stop();
-		                console.log("Fin de manche");
-		                io.sockets.emit('finManche',Jeu.ensembleJoueurs);
-		            }else{
-		                Jeu.tour.Stop();
-		                Jeu.manche.lancerTour();
-		           }
-                }else{
-		        if(this.secondsLeft === 0){
-		            //Tps écoulé -> arrêt du timer
-		            this.Stop();
-		            if(Jeu.manche.nonDessinateur.length-1 === 0){
-		                Jeu.finManche = true;
-		                console.log("Fin de manche");
-		                io.sockets.emit('finManche',Jeu.ensembleJoueurs);
-		            }else{
-		                Jeu.tour.Stop();
-		                Jeu.manche.lancerTour();
-		           }
-		       }
-		}
+                if(this.secondsLeft === 0){
+                    //Tps écoulé -> arrêt du timer
+                    this.Stop();
+                    if(Jeu.manche.nonDessinateur.length-1 === 0){
+                        Jeu.finManche = true;
+                        console.log("Fin de manche");
+                    }else{
+                        console.log('Fin de tour');
+                        Jeu.manche.lancerTour();
+                    }
+                }
+
             },
 
             Stop: function() {
                 //quand le temps est écoulé, on arrête le timer
-                this.secondsLeft = 0;
                 clearInterval(this.timer);
                 //Et on appelle la fonction qui gère la fin du temps imparti et poursuit le traitement
                 //Ici, pour le test, simplement une fonction alert
                 //console.log('Fin de manche');
             }
+
+        /*Jeu.temps = tps;
+        //Reactualisation du chrono si different de 0.
+        if ( Jeu.temps > 0)
+        {
+            io.sockets.emit('temps',Jeu.temps);
+            setTimeout(function(){Jeu.lancerChrono(Jeu.temps--);}, 1000);
+        }else{
+            io.sockets.emit('tempsEcoule');
+        }*/
     }
+   /* lancerTour(){
+        Jeu.enJeu = true;
+        Jeu.chrono.Start(Jeu.tpsTour);
+        var min = Math.ceil(0);
+        var max = Math.floor(Jeu.t_doisJouer.length);
+        var rand = Math.floor(Math.random() * (max - min)) + min;
+        //Tirage aléatoire du dessinateur
+        console.log(Jeu.t_nomJoueurs[rand]+' est
+        le dessinateur');
+        var dessinateur = Jeu.t_nomJoueurs[rand];
+        Jeu.t_doisJouer.splice(rand,1);
+        //On supprime le dessinateur de la liste des joueurs à jouer
+        console.log(Jeu.t_doisJouer);
+        clients[Jeu.ensembleJoueurs[dessinateur].nom].emit('dessinateur');
+    },
+    lancerManche(){
+        Jeu.t_doisJouer = Jeu.t_nomJoueurs;
+        setTimeout(function(){Jeu.lancerTour();},5000);
+    }*/
 };
 
 class Joueur {
@@ -264,7 +306,7 @@ io.on('connection', function (socket) {
      */
 
     socket.on("creerPartie", function(options) {
-        Jeu.setOptions(options.createur,options.nbManche,options.nbJoueur,options.tpsTour);
+        Jeu.setOptions(options.createur,options.nbManche,options.nbJoueur,options.tpsTour,options.alphabet,options.cbs);
         console.log("Nouveau jeu créé par " + Jeu.nomCreateur);
     });
 
@@ -308,9 +350,7 @@ io.on('connection', function (socket) {
         }
     });
 
-	socket.on('canvas',function(img){
-		io.sockets.emit('canvas',img);
-	});
+
     /**
      *  Réception d'un message et transmission à tous.
      *  @param  msg     Object  le message à transférer à tous
@@ -335,19 +375,9 @@ io.on('connection', function (socket) {
         else{
             Jeu.ensembleJoueurs[msg.from].nombreEssai--;
             if(Jeu.ensembleJoueurs[msg.from].nombreEssai === 0){
-                clients[msg.from].emit('bloquerChat');
+                socket.emit('bloquerChat');
             }
-            if(msg.text.match(Jeu.tour.solution)){
-            	clients[msg.from].emit('trouvéSolution');
-            	console.log(msg.from+" A trouvé la solution a "+msg.temps+" s");
-            	Jeu.ensembleJoueurs[msg.from].score += 5 + msg.temps * 0.25; 
-            	Jeu.ensembleJoueurs[msg.from].trouveSolution = true;
-            	msg.find = true;
-            	Jeu.tour.nbTrouve++;
-            	io.sockets.emit("message", msg);
-            }else{
-            	io.sockets.emit("message", msg);
-            }
+            io.sockets.emit("message", msg);
         }
         //}
     });
@@ -371,12 +401,7 @@ io.on('connection', function (socket) {
             // envoi de la nouvelle liste pour mise à jour
             socket.broadcast.emit("liste", Jeu.ensembleJoueurs);
             if(Object.keys(Jeu.ensembleJoueurs).length === 0){
-            	Jeu.chrono.Stop();
-            	Jeu.enJeu = false;
-            	Jeu.finManche = false;
-            	delete Jeu;
                 console.log("On supprime la partie");
-                console.log(Jeu);
             }
         }
     });
@@ -395,12 +420,7 @@ io.on('connection', function (socket) {
             socket.broadcast.emit("liste", Jeu.ensembleJoueurs);
             console.log("Client déconnecté\nIl reste "+Object.keys(Jeu.ensembleJoueurs).length+" joueur(s)");
             if(Object.keys(Jeu.ensembleJoueurs).length === 0){
-            	Jeu.chrono.Stop();
-            	Jeu.enJeu = false;
-            	Jeu.finManche = false;
-            	delete Jeu;
                 console.log("On supprime la partie");
-                console.log(Jeu);
             }
         }
     });
