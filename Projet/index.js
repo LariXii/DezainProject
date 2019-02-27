@@ -155,8 +155,8 @@ var Jeu = {
         },
         CalculScore(){
         	console.log('Il y a eu ',this.nbTrouve,' joueur(s) qui ont trouvé la solution\nIl y a ',Jeu.nbJoueur,' joueur(s) dans la partie');
-        	Jeu.ensembleJoueurs[Jeu.tour.drawer].score += 100*(this.nbTrouve/Jeu.nbJoueur);
-        	console.log('Le dessinateur est ',Jeu.tour.drawer,' il a gagné ',Jeu.ensembleJoueurs[Jeu.tour.drawer].score,'points');
+        	Jeu.ensembleJoueurs[Jeu.tour.drawer].score += parseInt(20*(this.nbTrouve/(Jeu.nbJoueur-1)));
+        	console.log('Le dessinateur est ',Jeu.tour.drawer,' il a gagné ',parseInt(20*(this.nbTrouve/(Jeu.nbJoueur-1))),'points');
         	Jeu.t_nomJoueurs.sort(function(a,b){
         		return Jeu.ensembleJoueurs[b].score - Jeu.ensembleJoueurs[a].score;
         	});
@@ -304,6 +304,7 @@ io.on('connection', function (socket) {
         // envoi de la nouvelle liste à tous les clients connectés
         io.sockets.emit("liste", Jeu.ensembleJoueurs);
         if (Object.keys(Jeu.ensembleJoueurs).length == Jeu.nbJoueurMax){
+            console.log(Jeu);
            setTimeout(function(){Jeu.manche.Start(Jeu.t_nomJoueurs);},50);
         }
     });
@@ -339,8 +340,8 @@ io.on('connection', function (socket) {
             }
             if(msg.text.match(Jeu.tour.solution)){
             	clients[msg.from].emit('trouvéSolution');
-            	console.log(msg.from+" A trouvé la solution a "+msg.temps+" s");
-            	Jeu.ensembleJoueurs[msg.from].score += 5 + msg.temps * 0.25; 
+            	console.log(msg.from+" a trouvé la solution il gagne ",parseInt(20 * (msg.temps / Jeu.tpsTour)),'points');
+            	Jeu.ensembleJoueurs[msg.from].score += parseInt(20 * (msg.temps / Jeu.tpsTour));
             	Jeu.ensembleJoueurs[msg.from].trouveSolution = true;
             	msg.find = true;
             	Jeu.tour.nbTrouve++;

@@ -3,7 +3,6 @@ var currentAvatar = 2;
 document.addEventListener('DOMContentLoaded',function(){
     var socket = io.connect("http://localhost:8080/");
 	var user = 'unknown';
-	var listUser=[];
 	var enjeu = false;
 	var tempsTour = null;
 	var dessinateur = false;
@@ -15,7 +14,6 @@ document.addEventListener('DOMContentLoaded',function(){
 				nbManche : document.getElementById('btnNombreManche').value,
 				tpsTour : document.getElementById('btnDureeTour').value
     		});
-			listUser.push(user);
 			socket.emit("login", {pseudo : user, avatar : currentAvatar});
     		document.getElementById("radio1").checked = false;
     		document.getElementById("radio2").checked = true;
@@ -28,7 +26,6 @@ document.addEventListener('DOMContentLoaded',function(){
 				socket.on("check",function(bool){
 					if(bool){
 						socket.emit("login", {pseudo: user, avatar: currentAvatar});
-						listUser.push(user);
 						document.getElementById("radio3").checked = false;
 						document.getElementById("radio2").checked = true;
 					}
@@ -37,6 +34,10 @@ document.addEventListener('DOMContentLoaded',function(){
 					}
 				});
     	});
+
+    	socket.on('bienvenue',function(nom){
+    		user = nom ;
+		});
     	
     	document.getElementById("btnNombreJoueur").onchange = afficheNombreJoueur;
     	

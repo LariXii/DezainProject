@@ -370,8 +370,6 @@ input[type=radio]:checked + div {
 #dessinateur canvas {
     cursor: none;
     border: solid 1px #000;
-    width: 100%;
-    height: 527px;
     position: absolute;
 }
 #dessinateur canvas#overlay {
