@@ -21,6 +21,61 @@ app.get('/', function(req, res) {
 var clients = {};       // id -> socket
 var nombreUser = 0;
 
+var kanji = {
+    "hiragana" : {
+        "a" : 12354, "i" : 12356, "u" : 12358, "e" : 12360, "o" : 12362,
+        "ka": 12363, "ga": 12364, "ki": 12365, "gi": 12366, "ku": 12367, "gu": 12368, "ke": 12369, "ge": 12370, "ko": 12371, "go": 12372,
+        "sa": 12373, "za": 12374,
+        "shi": 12375, "ji": 12376,
+        "su": 12377, "zu": 12378,
+        "se": 12379, "ze": 12380,
+        "so": 12381, "zo": 12382,
+        "ta": 12383, "da": 12384,
+        "chi": 12385, "di": 12386,
+        "tsu": 12388, "du": 12389,
+        "te": 12390, "de": 12391,
+        "to": 12392, "do": 12393,
+        "na": 12394, "ni": 12395, "nu": 12396, "ne": 12397, "no": 12398,
+        "ha": 12399, "ba": 12400, "pa": 12401,
+        "hi": 12402, "bi": 12403, "pi": 12404,
+        "fu": 12405, "bu": 12406, "pu": 12407,
+        "he": 12408, "be": 12409, "pe": 12410,
+        "ho": 12411, "bo": 12412, "po": 12413,
+        "ma": 12414, "mi": 12415, "mu": 12416, "me": 12417, "mo": 12418,
+        "ya": 12420, "yu": 12422, "yo": 12424,
+        "ra": 12425, "ri": 12426, "ru": 12427, "re": 12428, "ro": 12429,
+        "wa": 12431, "wi": 12432, "we": 12433, "wo": 12434,
+        "n" : 12435,
+        "vu": 12436
+    },
+    "katakana" : {
+        "a" : 12450, "i" : 12452, "u" : 12454, "e" : 12456, "o" : 12458,
+        "ka": 12459, "ga": 12460, "ki": 12461, "gi": 12462, "ku": 12463, "gu": 12464, "ke": 12465, "ge": 12466, "ko": 12467, "go": 12468,
+        "sa": 12469, "za": 12470,
+        "shi": 12471, "ji": 12472,
+        "su": 12473, "zu": 12474,
+        "se": 12475, "ze": 12476,
+        "so": 12477, "zo": 12478,
+        "ta": 12479, "da": 12480,
+        "chi": 12481, "di": 12482,
+        "tsu": 12484, "du": 12485,
+        "te": 12486, "de": 12487,
+        "to": 12488, "do": 12489,
+        "na": 12490, "ni": 12491, "nu": 12492, "ne": 12493, "no": 12494,
+        "ha": 12495, "ba": 12496, "pa": 12497,
+        "hi": 12498, "bi": 12499, "pi": 12500,
+        "fu": 12501, "bu": 12502, "pu": 12503,
+        "he": 12504, "be": 12505, "pe": 12506,
+        "ho": 12507, "bo": 12508, "po": 12509,
+        "ma": 12510, "mi": 12511, "mu": 12512, "me": 12513, "mo": 12514,
+        "ya": 12516, "yu": 12518, "yo": 12520,
+        "ra": 12521, "ri": 12522, "ru": 12523, "re": 12524, "ro": 12525,
+        "wa": 12527, "wi": 12528, "we": 12529, "wo": 12530,
+        "n" : 12531,
+        "vu": 12532, "va": 12535, "vi": 12536, "ve": 12537, "vo": 12538
+    }
+};
+
 var Jeu = {
     nomCreateur : undefined,
     nompartie : undefined,
@@ -41,49 +96,128 @@ var Jeu = {
         Jeu.nbJoueurMax = nbJoueur;
         Jeu.tpsTour = tpsTour;
         Jeu.alphabet = alphabet;
+        //Jeu.cbs prend cette valeur
+        //Jeu.cbs = cbs;
+        //nombre de checkbox valide mais les tableaux sont tous
+        //console.log(cbs);
+
+        // Ensemble des glyphes
+        //var objGlyphes = null;
+
+        /** Dernier glyphe à faire deviner */
+        //var last = null;
+
+        /**Fonction pour lancer les 3 caractères */
+        //change();
+        /**
+         *  Change la lettre/syllabe à reconnaître.
+         */
+        /*function change() {
+            // récupération de l'alphabet
+            alpha = null;
+            if (Jeu.alphabet == "les2") {
+                Jeu.alphabet = (Math.random() < 0.5) ? 'hiragana' : 'katakana';
+            }
+            if(Jeu.alphabet == 'hiragana'){
+                objGlyphes =  new Glyphes(kanji.hiragana);
+            }else{
+                objGlyphes = new Glyphes(kanji.katakana);
+            }
+            console.log("on Cherche des "+Jeu.alphabet);
+
+            var aTrouver = objGlyphes.getThreeGlyphes(last, alphabet);
+
+        }*/
+        /**
+         *  Classe représentant l'ensemble des glyphes
+         */
+        //function Glyphes(glyphes) {
+        /**
+         *  Clés des glyphes éligibles par rapport aux options actuellement sélectionnées
+         *  (fonction privée -- interne à la classe)
+         */
+        /* var getGlyphKeys = function() {
+                //Ici cbs devrais contenir les valeurs des inputs
+                var cbs = Jeu.cbs;
+                return Object.keys(glyphes).filter(function(elem, _index, _array) {
+                    // closure qui s'appuie sur les checkbox qui ont été sélectionnées (cbs)
+                    for (var i=0; i < cbs.length; i++) {
+                        // on vérifie si la clé (elem) matche la regex définie comme valeur de la checkbox
+                        var patt = new RegExp("\\b" + cbs[i].value + "\\b", "g");
+                        if (patt.test(elem)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+            }*/
+        /**
+         *  Choisit trois glyphes différents entre elles et différentes de celle dont la clé
+         *  est passée en paramètre
+         *  @param old          String  clé du glyphe
+         *  @param alphabet     String  alphabet considéré
+         */
+        /*this.getThreeGlyphes = function(old, alphabet) {
+                var eligible = getGlyphKeys();
+                var aTrouver = [];
+                var aEviter = [old];
+                var key;
+                for (var i=0; i < 3; i++) {
+                    do {
+                        key = eligible[Math.random() * eligible.length | 0];
+                    }
+                    while (aEviter.indexOf(key) >= 0);
+                    aEviter.push(key);
+                    aTrouver[i] = { key: key, ascii: glyphes[key] };
+
+                }
+
+                return aTrouver;
+            }
+        }*/
     },
     ajoutJoueur : function(joueur){
-    	this.nbJoueur++;
-    	joueur.setRank(this.nbJoueur);
+        this.nbJoueur++;
+        joueur.setRank(this.nbJoueur);
         Jeu.ensembleJoueurs[joueur.getNom()]=joueur;
         if(!Jeu.enJeu){
             Jeu.t_nomJoueurs.push(joueur.getNom());
         }
     },
     deconnecterJoueur : function(joueur){
-    	console.log(joueur," se déconnecte");
+        console.log(joueur," se déconnecte");
         delete Jeu.ensembleJoueurs[joueur];
-        t_nomJoueurs = Object.keys(Jeu.ensembleJoueurs);
+        this.t_nomJoueurs = Object.keys(Jeu.ensembleJoueurs);
         this.nbJoueur--;
         for(var i in Jeu.manche.t_doisJouer){
-        	if(Jeu.manche.t_doisJouer[i] === joueur){
-        		Jeu.manche.t_doisJouer.splice(i,1);
-        	}
+            if(Jeu.manche.t_doisJouer[i] === joueur){
+                Jeu.manche.t_doisJouer.splice(i,1);
+            }
         }
         for(var i in Jeu.manche.nonDessinateur){
-        	if(Jeu.manche.nonDessinateur[i] === joueur){
-        		Jeu.manche.nonDessinateur.splice(i,1);
-        	}
+            if(Jeu.manche.nonDessinateur[i] === joueur){
+                Jeu.manche.nonDessinateur.splice(i,1);
+            }
         }
         console.log(Jeu);
         if(Jeu.enTour){
-        	console.log(Jeu.tour.drawer);
-        	if(joueur === Jeu.tour.drawer){
-			Jeu.tour.Stop();
-			console.log('Le dessinateur s\'est déconnecté');
-			if(Jeu.nbJoueur === 1){
-				Jeu.tour.Stop();
-				Jeu.enJeu = false;
-				console.log('Plus assez de joueur pour jouer la manche');
-				io.sockets.emit('finManche',Jeu.ensembleJoueurs);
-			}
-        	}
-        	if(Jeu.nbJoueur === 1){
-			Jeu.tour.Stop();
-			Jeu.enJeu = false;
-			console.log('Plus assez de joueur pour jouer la manche');
-			io.sockets.emit('finManche',Jeu.ensembleJoueurs);
-        	}
+            console.log(Jeu.tour.drawer);
+            if(joueur === Jeu.tour.drawer){
+                Jeu.tour.Stop();
+                console.log('Le dessinateur s\'est déconnecté');
+                if(Jeu.nbJoueur === 1){
+                    Jeu.tour.Stop();
+                    Jeu.enJeu = false;
+                    console.log('Plus assez de joueur pour jouer la manche');
+                    io.sockets.emit('finManche',Jeu.ensembleJoueurs);
+                }
+            }
+            if(Jeu.nbJoueur === 1){
+                Jeu.tour.Stop();
+                Jeu.enJeu = false;
+                console.log('Plus assez de joueur pour jouer la manche');
+                io.sockets.emit('finManche',Jeu.ensembleJoueurs);
+            }
         }
     },
     manche : {
@@ -96,25 +230,30 @@ var Jeu = {
             this.lancerTour();
         },
         lancerTour(){
-        	this.nonDessinateur = [];
-		for(var i in this.t_doisJouer){
-		    	if(!Jeu.ensembleJoueurs[this.t_doisJouer[i]].aEteDrawer){
-		        	this.nonDessinateur.push(Jeu.ensembleJoueurs[this.t_doisJouer[i]].nom);
-		        }
-		}
-		console.log('On lance un tour, ceux qui peuvent être dessinateur sont : ',this.nonDessinateur);
-        	Jeu.tour.setTour(this.nonDessinateur,this.t_doisJouer);
+            this.nonDessinateur = [];
+            for(var i in this.t_doisJouer){
+                if(!Jeu.ensembleJoueurs[this.t_doisJouer[i]].aEteDrawer){
+                    this.nonDessinateur.push(Jeu.ensembleJoueurs[this.t_doisJouer[i]].nom);
+                }
+            }
+            console.log('On lance un tour, ceux qui peuvent être dessinateur sont : ',this.nonDessinateur);
+            Jeu.tour.setTour(this.nonDessinateur,this.t_doisJouer);
         },
     },
     tour : {
-    		drawer : undefined,
-    		joueursTour : [],
-    		solution : /^ra$/,
-    		nbTrouve : 0,
+        drawer : undefined,
+        joueursTour : [],
+        solution : /^ra$/,
+        nbTrouve : 0,
+        nbBloque : 0,
         setTour(joueursNonDrawer,joueurDuTour){
-        	for(var j in Jeu.ensembleJoueurs){
-        		Jeu.ensembleJoueurs[j].trouveSolution = false;
-        	}
+            this.nbTrouve = 0;
+            this.nbBloque = 0;
+            for(var j in Jeu.ensembleJoueurs){
+                Jeu.ensembleJoueurs[j].trouveSolution = false;
+                Jeu.ensembleJoueurs[j].nombreEssai = 3;
+                Jeu.ensembleJoueurs[j].estBloque = false;
+            }
             for(var i in joueurDuTour) {
                 Jeu.ensembleJoueurs[joueurDuTour[i]].dessinateur = false;
             }
@@ -129,7 +268,9 @@ var Jeu = {
             console.log('DESSINATEUR : ',this.drawer);
             Jeu.ensembleJoueurs[this.drawer].dessinateur = true;
             Jeu.ensembleJoueurs[this.drawer].aEteDrawer = true;
-	    clients[this.drawer].emit('dessinateur');
+            Jeu.ensembleJoueurs[this.drawer].estBloque = true;
+            this.nbBloque++;
+            clients[this.drawer].emit('dessinateur');
             this.joueursTour = [];
             for(var i in Jeu.manche.t_doisJouer){
                 if(Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]].dessinateur === false){
@@ -145,77 +286,76 @@ var Jeu = {
             console.log('joueurs du tour :',joueurs);
         },
         Stop(){
-        	console.log('Fin du tour');
-        	Jeu.enTour = false;
-        	Jeu.chrono.Stop();
-        	Jeu.tour.CalculScore();
-        	this.nbTrouve = 0;
-        	io.sockets.emit('clear');
-        	io.sockets.emit('liste',Jeu.ensembleJoueurs);
+            console.log('Fin du tour');
+            Jeu.enTour = false;
+            Jeu.chrono.Stop();
+            Jeu.tour.CalculScore();
+            io.sockets.emit('finTour',Jeu.t_nomJoueurs);
+            io.sockets.emit('liste',Jeu.ensembleJoueurs,Jeu.t_nomJoueurs);
         },
         CalculScore(){
-        	console.log('Il y a eu ',this.nbTrouve,' joueur(s) qui ont trouvé la solution\nIl y a ',Jeu.nbJoueur,' joueur(s) dans la partie');
-        	Jeu.ensembleJoueurs[Jeu.tour.drawer].score += parseInt(20*(this.nbTrouve/(Jeu.nbJoueur-1)));
-        	console.log('Le dessinateur est ',Jeu.tour.drawer,' il a gagné ',parseInt(20*(this.nbTrouve/(Jeu.nbJoueur-1))),'points');
-        	Jeu.t_nomJoueurs.sort(function(a,b){
-        		return Jeu.ensembleJoueurs[b].score - Jeu.ensembleJoueurs[a].score;
-        	});
-        	var rank = 1;
-        	for(var i in Jeu.t_nomJoueurs){
-			Jeu.ensembleJoueurs[Jeu.t_nomJoueurs[i]].rank = rank;
-			rank++;
-        	}
+            console.log('Il y a eu ',this.nbTrouve,' joueur(s) qui ont trouvé la solution\nIl y a ',Jeu.nbJoueur,' joueur(s) dans la partie');
+            Jeu.ensembleJoueurs[Jeu.tour.drawer].score += parseInt(20*(this.nbTrouve/(Jeu.nbJoueur-1)));
+            console.log('Le dessinateur est ',Jeu.tour.drawer,' il a gagné ',parseInt(20*(this.nbTrouve/(Jeu.nbJoueur-1))),'points');
+            Jeu.t_nomJoueurs.sort(function(a,b){
+                return Jeu.ensembleJoueurs[b].score - Jeu.ensembleJoueurs[a].score;
+            });
+            var rank = 1;
+            for(var i in Jeu.t_nomJoueurs){
+                Jeu.ensembleJoueurs[Jeu.t_nomJoueurs[i]].rank = rank;
+                rank++;
+            }
         },
     },
     chrono : {
-            secondsLeft: 0,
-            timer: undefined,
+        secondsLeft: 0,
+        timer: undefined,
 
-            Start: function(secondsLeft) {
-                //Initialisation du nombre de secondes selon la valeur passée en paramètre
-                this.secondsLeft = secondsLeft;
-                //Démarrage du chrono
-                this.timer = setInterval(this.Tick.bind(this), 1000);
-            },
+        Start: function(secondsLeft) {
+            //Initialisation du nombre de secondes selon la valeur passée en paramètre
+            this.secondsLeft = secondsLeft;
+            //Démarrage du chrono
+            this.timer = setInterval(this.Tick.bind(this), 1000);
+        },
 
-            Tick: function() {
-                //On actualise la valeur affichée du nombre de secondes
-                io.sockets.emit('temps',--this.secondsLeft);
-                if(Jeu.tour.nbTrouve === Jeu.nbJoueur-1){
-                	this.Stop();
-                	if(Jeu.manche.nonDessinateur.length-1 === 0){
-		                Jeu.finManche = true;
-		                Jeu.tour.Stop();
-		                console.log("Fin de manche");
-		                io.sockets.emit('finManche',Jeu.ensembleJoueurs);
-		            }else{
-		                Jeu.tour.Stop();
-		                Jeu.manche.lancerTour();
-		           }
+        Tick: function() {
+            //On actualise la valeur affichée du nombre de secondes
+            io.sockets.emit('temps',--this.secondsLeft);
+            if(Jeu.tour.nbBloque === Jeu.nbJoueur){
+                this.Stop();
+                if(Jeu.manche.nonDessinateur.length-1 === 0){
+                    Jeu.finManche = true;
+                    Jeu.tour.Stop();
+                    console.log("Fin de manche");
+                    io.sockets.emit('finManche',Jeu.ensembleJoueurs);
                 }else{
-		        if(this.secondsLeft === 0){
-		            //Tps écoulé -> arrêt du timer
-		            this.Stop();
-		            if(Jeu.manche.nonDessinateur.length-1 === 0){
-		                Jeu.finManche = true;
-		                console.log("Fin de manche");
-		                io.sockets.emit('finManche',Jeu.ensembleJoueurs);
-		            }else{
-		                Jeu.tour.Stop();
-		                Jeu.manche.lancerTour();
-		           }
-		       }
-		}
-            },
-
-            Stop: function() {
-                //quand le temps est écoulé, on arrête le timer
-                this.secondsLeft = 0;
-                clearInterval(this.timer);
-                //Et on appelle la fonction qui gère la fin du temps imparti et poursuit le traitement
-                //Ici, pour le test, simplement une fonction alert
-                //console.log('Fin de manche');
+                    Jeu.tour.Stop();
+                    Jeu.manche.lancerTour();
+                }
+            }else{
+                if(this.secondsLeft === 0){
+                    //Tps écoulé -> arrêt du timer
+                    this.Stop();
+                    if(Jeu.manche.nonDessinateur.length-1 === 0){
+                        Jeu.finManche = true;
+                        console.log("Fin de manche");
+                        io.sockets.emit('finManche',Jeu.ensembleJoueurs);
+                    }else{
+                        Jeu.tour.Stop();
+                        Jeu.manche.lancerTour();
+                    }
+                }
             }
+        },
+
+        Stop: function() {
+            //quand le temps est écoulé, on arrête le timer
+            this.secondsLeft = 0;
+            clearInterval(this.timer);
+            //Et on appelle la fonction qui gère la fin du temps imparti et poursuit le traitement
+            //Ici, pour le test, simplement une fonction alert
+            //console.log('Fin de manche');
+        }
     }
 };
 
@@ -229,6 +369,7 @@ class Joueur {
         this.dessinateur = false;
         this.trouveSolution = false;
         this.aEteDrawer = false;
+        this.estBloque = false;
     }
     setNom(nom){
         this.nom = nom;
@@ -248,7 +389,7 @@ class Joueur {
 }
 // Quand un client se connecte, on le note dans la console
 io.on('connection', function (socket) {
-
+    io.sockets.emit('test');
     // message de debug
     if(Object.keys(Jeu.ensembleJoueurs).length === 0){
         socket.emit('createur');
@@ -269,18 +410,21 @@ io.on('connection', function (socket) {
     });
 
     socket.on("verif",function(){
-        if(Object.keys(Jeu.ensembleJoueurs).length+1 < Jeu.nbJoueurMax){
-            socket.emit("check",true);
-        }
-        else {
-            if(Object.keys(Jeu.ensembleJoueurs).length+1 == Jeu.nbJoueurMax) {
+        console.log(socket);
+        if(Object.keys(Jeu.ensembleJoueurs).length === 0){
+            if(Object.keys(Jeu.ensembleJoueurs).length+1 < Jeu.nbJoueurMax){
                 socket.emit("check",true);
-                console.log('Le jeu va se lancer');
             }
-            else{
-                socket.emit("check",false);
+            else {
+                if(Object.keys(Jeu.ensembleJoueurs).length+1 === Jeu.nbJoueurMax) {
+                    socket.emit("check",true);
+                }
+                else{
+                    socket.emit("check",false);
+                }
             }
         }
+
     });
 
     socket.on("login", function(logJoueur) {
@@ -301,17 +445,18 @@ io.on('connection', function (socket) {
             text: currentID + " a rejoint la discussion",
             date: Date.now()
         });
+        console.log(Jeu.t_nomJoueurs);
         // envoi de la nouvelle liste à tous les clients connectés
-        io.sockets.emit("liste", Jeu.ensembleJoueurs);
+        io.sockets.emit("liste", Jeu.ensembleJoueurs,Jeu.t_nomJoueurs);
         if (Object.keys(Jeu.ensembleJoueurs).length == Jeu.nbJoueurMax){
             console.log(Jeu);
-           setTimeout(function(){Jeu.manche.Start(Jeu.t_nomJoueurs);},50);
+            setTimeout(function(){Jeu.manche.Start(Jeu.t_nomJoueurs);},50);
         }
     });
 
-	socket.on('canvas',function(img){
-		io.sockets.emit('canvas',img);
-	});
+    socket.on('canvas',function(img){
+        io.sockets.emit('canvas',img);
+    });
     /**
      *  Réception d'un message et transmission à tous.
      *  @param  msg     Object  le message à transférer à tous
@@ -336,18 +481,23 @@ io.on('connection', function (socket) {
         else{
             Jeu.ensembleJoueurs[msg.from].nombreEssai--;
             if(Jeu.ensembleJoueurs[msg.from].nombreEssai === 0){
-                clients[msg.from].emit('bloquerChat');
+                clients[msg.from].emit('bloquerChat',Jeu.ensembleJoueurs[msg.from]);
+                Jeu.ensembleJoueurs[msg.from].estBloque = true;
+                Jeu.tour.nbBloque++;
             }
             if(msg.text.match(Jeu.tour.solution)){
-            	clients[msg.from].emit('trouvéSolution');
-            	console.log(msg.from+" a trouvé la solution il gagne ",parseInt(20 * (msg.temps / Jeu.tpsTour)),'points');
-            	Jeu.ensembleJoueurs[msg.from].score += parseInt(20 * (msg.temps / Jeu.tpsTour));
-            	Jeu.ensembleJoueurs[msg.from].trouveSolution = true;
-            	msg.find = true;
-            	Jeu.tour.nbTrouve++;
-            	io.sockets.emit("message", msg);
+                io.sockets.emit('trouveSolution',msg.from);
+                console.log(msg.from+" a trouvé la solution il gagne ",parseInt(20 * (msg.temps / Jeu.tpsTour)),'points');
+                Jeu.ensembleJoueurs[msg.from].score += parseInt(15 * (msg.temps / Jeu.tpsTour));
+                Jeu.ensembleJoueurs[msg.from].trouveSolution = true;
+                Jeu.ensembleJoueurs[msg.from].estBloque = true;
+                msg.find = true;
+                Jeu.tour.nbTrouve++;
+                Jeu.tour.nbBloque++;
+                clients[msg.from].emit('bloquerChat',Jeu.ensembleJoueurs[msg.from]);
+                io.sockets.emit("message", msg);
             }else{
-            	io.sockets.emit("message", msg);
+                io.sockets.emit("message", msg);
             }
         }
         //}
@@ -370,12 +520,12 @@ io.on('connection', function (socket) {
             delete clients[currentID];
             Jeu.deconnecterJoueur(joueur.getNom());
             // envoi de la nouvelle liste pour mise à jour
-            socket.broadcast.emit("liste", Jeu.ensembleJoueurs);
+            socket.broadcast.emit("liste", Jeu.ensembleJoueurs,Jeu.t_nomJoueurs);
             if(Object.keys(Jeu.ensembleJoueurs).length === 0){
-            	Jeu.chrono.Stop();
-            	Jeu.enJeu = false;
-            	Jeu.finManche = false;
-            	delete Jeu;
+                Jeu.chrono.Stop();
+                Jeu.enJeu = false;
+                Jeu.finManche = false;
+                delete Jeu;
                 console.log("On supprime la partie");
                 console.log(Jeu);
             }
@@ -393,13 +543,13 @@ io.on('connection', function (socket) {
             delete clients[currentID];
             Jeu.deconnecterJoueur(joueur.getNom());
             // envoi de la nouvelle liste pour mise à jour
-            socket.broadcast.emit("liste", Jeu.ensembleJoueurs);
+            socket.broadcast.emit("liste", Jeu.ensembleJoueurs,Jeu.t_nomJoueurs);
             console.log("Client déconnecté\nIl reste "+Object.keys(Jeu.ensembleJoueurs).length+" joueur(s)");
             if(Object.keys(Jeu.ensembleJoueurs).length === 0){
-            	Jeu.chrono.Stop();
-            	Jeu.enJeu = false;
-            	Jeu.finManche = false;
-            	delete Jeu;
+                Jeu.chrono.Stop();
+                Jeu.enJeu = false;
+                Jeu.finManche = false;
+                delete Jeu;
                 console.log("On supprime la partie");
                 console.log(Jeu);
             }
