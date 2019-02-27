@@ -11,7 +11,10 @@ document.addEventListener('DOMContentLoaded',function(){
 			}
     		socket.emit("creerPartie",{createur : user,nbJoueur :document.getElementById('btnNombreJoueur').value ,
 				nbManche : document.getElementById('btnNombreManche').value,
-				tpsTour : document.getElementById('btnDureeTour').value
+				tpsTour : document.getElementById('btnDureeTour').value,
+				alphabet : document.querySelector("#formulaire input[name=radGlyphe]:checked").value,
+				//Le cbs est envoyé au serveur
+				cbs :  document.querySelectorAll("#formulaire input[type=checkbox]:checked")
     		});
 			listUser.push(user);
 			socket.emit("login", {pseudo : user, avatar : currentAvatar});
