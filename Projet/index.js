@@ -59,36 +59,38 @@ var Jeu = {
         nonDessinateur : [],
         Start: function(t_nomJoueurs){
             this.t_doisJouer = t_nomJoueurs;
-            for(var i in this.t_doisJouer){
-                this.nonDessinateur.push(Jeu.ensembleJoueurs[this.t_doisJouer[i]]);
-            }
-            Jeu.tour.setTour();
+            console.log('JOUEUR DE LA MANCHE : ',this.t_doisJouer);
+            this.lancerTour();
+        },
+        lancerTour(){
+        	this.nonDessinateur = [];
+		for(var i in this.t_doisJouer){
+		    	if(!Jeu.ensembleJoueurs[this.t_doisJouer[i]].aEteDrawer){
+		        	this.nonDessinateur.push(Jeu.ensembleJoueurs[this.t_doisJouer[i]].nom);
+		        }
+		}
+		console.log('On lance un tour, ceux qui peuvent être dessinateur sont : ',this.nonDessinateur);
+        	Jeu.tour.setTour(this.nonDessinateur,this.t_doisJouer);
         },
     },
     tour : {
-        setTour(){
-            console.log('DOIT JOUER : ',Jeu.manche.t_doisJouer);
-            var joueursNonDrawer = [];
-            for(var i in Jeu.manche.t_doisJouer) {
-                Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]].dessinateur = false;
-                if(!Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]].aEteDrawer){
-                    joueursNonDrawer.push(Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]]);
-                }
+        setTour(joueursNonDrawer,joueurDuTour){
+            for(var i in joueurDuTour) {
+                Jeu.ensembleJoueurs[joueurDuTour[i]].dessinateur = false;
             }
-            console.log('JOUEURS QUI PEUT ETRE DESSINATEUR : ',joueursNonDrawer);
+            console.log('JOUEURS QUI PEUVENT ETRE DESSINATEUR : ',joueursNonDrawer);
             
-            var t = Object.keys(joueursNonDrawer);
+            //var t = Object.keys(joueursNonDrawer);
             var min = Math.ceil(0);
-            var max = Math.floor(t.length);
+            var max = Math.floor(joueursNonDrawer.length);
             var rand = Math.floor(Math.random() * (max - min)) + min;
             /*Tirage aléatoire du dessinateur*/
-            var drawer = Jeu.ensembleJoueurs[joueursNonDrawer[rand].nom];
-            console.log('DESSINATEUR : ',drawer.nom);
-            drawer.dessinateur = true;
-            drawer.aEteDrawer = true;
-		clients[drawer.nom].emit('dessinateur');
-            /*On supprime le dessinateur de la liste des joueurs à jouer*/
-            
+            var drawer = joueursNonDrawer[rand];
+            console.log('DESSINATEUR : ',drawer);
+            Jeu.ensembleJoueurs[drawer].dessinateur = true;
+            Jeu.ensembleJoueurs[drawer].aEteDrawer = true;
+	    clients[drawer].emit('dessinateur');
+
             var joueursTour = [];
             for(var i in Jeu.manche.t_doisJouer){
                 if(Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]].dessinateur === false){
@@ -121,12 +123,12 @@ var Jeu = {
                 if(this.secondsLeft === 0){
                     //Tps écoulé -> arrêt du timer
                     this.Stop();
-                    if(Jeu.manche.t_nonJouer.length === 0){
+                    if(Jeu.manche.nonDessinateur.length-1 === 0){
                         Jeu.finManche = true;
                         console.log("Fin de manche");
                     }else{
                         console.log('Fin de tour');
-                        Jeu.tour.setTour();
+                        Jeu.manche.lancerTour();
                     }
                 }
 
@@ -201,23 +203,9 @@ class Joueur {
 // Quand un client se connecte, on le note dans la console
 io.on('connection', function (socket) {
 
-    function chrono(temps){
-        temps = temps - 1;
-        io.sockets.emit('temps',temps);
-        //Reactualisation du chrono si different de 0.
-        if ( temps > 0)
-        {
-            setTimeout(function(){chrono(temps);}, 1000);
-        }
-        else{
-            io.sockets.emit('finTemps');
-        }
-    }
-
     // message de debug
     if(Object.keys(Jeu.ensembleJoueurs).length === 0){
         socket.emit('createur');
-        //Jeu.lancerChrono(300);
     }
     else{
         socket.emit('invite');
