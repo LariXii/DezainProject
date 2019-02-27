@@ -29,6 +29,8 @@ var Jeu = {
     nbJoueur : 0,
     tpsTour : undefined,
     alphabet : undefined,
+ 	//declaration du cbs
+    cbs : undefined,
     enJeu : false,
     finManche : false,
     t_nomJoueurs : [],
@@ -39,7 +41,92 @@ var Jeu = {
         Jeu.nbManche = nbManche;
         Jeu.nbJoueurMax = nbJoueur;
         Jeu.tpsTour = tpsTour;
-        Jeu.alphabet = alphabet;
+      	Jeu.alphabet = alphabet;
+        //Jeu.cbs prend cette valeur
+        Jeu.cbs = cbs;
+        //nombre de checkbox valide mais les tableaux sont tous
+        console.log(cbs);
+       
+        /** Ensemble des glyphes */
+        var objGlyphes = null; 
+        
+        /** Dernier glyphe à faire deviner */
+        var last = null;
+
+        /**Fonction pour lancer les 3 caractères */
+        //change();
+        /** 
+             *  Change la lettre/syllabe à reconnaître. 
+             */
+            function change() {
+                // récupération de l'alphabet
+                alpha = null;
+                if (Jeu.alphabet == "les2") {
+                    Jeu.alphabet = (Math.random() < 0.5) ? 'hiragana' : 'katakana';   
+                }
+                if(Jeu.alphabet == 'hiragana'){
+                   objGlyphes =  new Glyphes(kanji.hiragana);
+                }else{
+                   objGlyphes = new Glyphes(kanji.katakana);
+                }
+                console.log("on Cherche des "+Jeu.alphabet);
+
+                var aTrouver = objGlyphes.getThreeGlyphes(last, alphabet);
+               
+            }
+
+                /**
+         *  Classe représentant l'ensemble des glyphes
+         */
+        function Glyphes(glyphes) {
+            /** 
+             *  Clés des glyphes éligibles par rapport aux options actuellement sélectionnées
+             *  (fonction privée -- interne à la classe)
+             */
+            var getGlyphKeys = function() {
+                //Ici cbs devrais contenir les valeurs des inputs
+                var cbs = Jeu.cbs;
+                return Object.keys(glyphes).filter(function(elem, _index, _array) {
+                    // closure qui s'appuie sur les checkbox qui ont été sélectionnées (cbs)
+                    for (var i=0; i < cbs.length; i++) {
+
+                        // on vérifie si la clé (elem) matche la regex définie comme valeur de la checkbox
+                        var patt = new RegExp("\\b" + cbs[i].value + "\\b", "g");
+                        if (patt.test(elem)) {
+                            return true;   
+                        }
+                    }
+                    return false;
+                });
+            }
+            
+            
+            /** 
+             *  Choisit trois glyphes différents entre elles et différentes de celle dont la clé
+             *  est passée en paramètre
+             *  @param old          String  clé du glyphe 
+             *  @param alphabet     String  alphabet considéré
+             */
+            this.getThreeGlyphes = function(old, alphabet) {
+                var eligible = getGlyphKeys();
+                var aTrouver = [];
+                var aEviter = [old]; 
+                var key;
+                
+               
+                for (var i=0; i < 3; i++) {
+                    do {
+                        key = eligible[Math.random() * eligible.length | 0];
+                    }
+                    while (aEviter.indexOf(key) >= 0);
+                    aEviter.push(key);
+                    aTrouver[i] = { key: key, ascii: glyphes[key] };
+                   
+                }
+                
+                return aTrouver;
+            }
+        }
     },
     ajoutJoueur : function(joueur){
         Jeu.ensembleJoueurs[joueur.getNom()]=joueur;
@@ -218,7 +305,7 @@ io.on('connection', function (socket) {
      */
 
     socket.on("creerPartie", function(options) {
-        Jeu.setOptions(options.createur,options.nbManche,options.nbJoueur,options.tpsTour);
+        Jeu.setOptions(options.createur,options.nbManche,options.nbJoueur,options.tpsTour,options.alphabet,options.cbs);
         console.log("Nouveau jeu créé par " + Jeu.nomCreateur);
     });
 
