@@ -68,34 +68,35 @@ var Jeu = {
     tour : {
         setTour(){
             console.log('DOIT JOUER : ',Jeu.manche.t_doisJouer);
-            var joueurs = [];
+            var joueursNonDrawer = [];
             for(var i in Jeu.manche.t_doisJouer) {
                 Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]].dessinateur = false;
                 if(!Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]].aEteDrawer){
-                    joueurs.push(Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]]);
+                    joueursNonDrawer.push(Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]]);
                 }
             }
-            console.log('JOUEURS : ',joueurs);
-            var t = Object.keys(joueurs);
+            console.log('JOUEURS QUI PEUT ETRE DESSINATEUR : ',joueursNonDrawer);
+            
+            var t = Object.keys(joueursNonDrawer);
             var min = Math.ceil(0);
             var max = Math.floor(t.length);
             var rand = Math.floor(Math.random() * (max - min)) + min;
             /*Tirage aléatoire du dessinateur*/
-            var drawer = Jeu.ensembleJoueurs[joueurs[rand].nom];
-            console.log('DOIT DESSINER : ',drawer.nom);
+            var drawer = Jeu.ensembleJoueurs[joueursNonDrawer[rand].nom];
+            console.log('DESSINATEUR : ',drawer.nom);
             drawer.dessinateur = true;
             drawer.aEteDrawer = true;
-            console.log('JOUEURS :',joueurs);
+		clients[drawer.nom].emit('dessinateur');
             /*On supprime le dessinateur de la liste des joueurs à jouer*/
-            clients[drawer.nom].emit('dessinateur');
-            joueurs = [];
-            for(var i in joueurs){
-                if(!joueurs[i].dessinateur){
-                    clients[joueurs[i].nom].emit('joueur');
-                    joueurs.push(joueurs[i].nom);
+            
+            var joueursTour = [];
+            for(var i in Jeu.manche.t_doisJouer){
+                if(Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]].dessinateur === false){
+                    clients[Jeu.manche.t_doisJouer[i]].emit('joueur');
+                    joueursTour.push(Jeu.manche.t_doisJouer[i]);
                 }
             }
-            Jeu.tour.Start(Jeu.tpsTour,joueurs,drawer);
+            Jeu.tour.Start(Jeu.tpsTour,joueursTour,drawer);
         },
         Start: function(tpsTour,joueurs,dessinateur){
             Jeu.enJeu = true;
