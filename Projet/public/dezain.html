@@ -10,14 +10,22 @@
 </head>
 
 <body>
+		<input type="radio" name="btnScreen" id="lobby">
+		<div id="bclobby">
+		<div id="creer">
+		<input type="button" value="CREER UNE PARTIE" id="lobbyCreateGame">
+		</div>
+		<div id="rejoindre">
+		<input type="button" value="REJOINDRE UNE PARTIE" id="lobbyJoinGame">
+		</div>
+		</div>
     <input type="radio" name="btnScreen" id="radio1">
     	<div id="menu">
 		  	<div id="log">
 		  		<div id="bcConnexion">
 						<div id="connexion">
-							<p>Choisissez votre pseudo : <br>
+							<p>Choisissez votre pseudo :</p>
 							<input type="text" id="pseudoCrea" placeholder="Tapez ici votre pseudo" size="30"  maxLength="12">
-							</p>
 						</div>
 						<div id="bcAvatar">
 							<p>Choisissez votre avatar :</p>
@@ -41,8 +49,9 @@
 					</div>
 		</div>
 		<div id="formulaire">
+		<p>Choisissez le nom de la partie :</p>
+		<input type="text" id="nomPartie" placeholder="Nom de la partie" size="30"  maxLength="15">
 			<form>
-		
 			<H2>Options</H2>
 			<div>
 			    <p>Alphabet :</p>
