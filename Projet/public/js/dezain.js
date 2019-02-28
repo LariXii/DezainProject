@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 	socket.on('temps',function(tps){
 		tempsTour = tps;
-		document.getElementById('temps').innerHTML = tps;
+		document.getElementById('gameHeader').firstChild.innerHTML = "Il vous reste : "+tps+ " secondes !";
 	});
 
 	socket.on('bloquerChat',function(joueurs){
@@ -145,28 +145,57 @@ document.addEventListener('DOMContentLoaded',function(){
 			document.getElementById(joueurs.nom).className = 'player lost';
 		}
 	});
-	
-	socket.on('dessinateur',function(){
-			dessinateur = true;
-			document.getElementById('toolbox').visible = true;
-			document.getElementById('toolbox').hidden = false;
-			document.getElementById('monMessage').disabled = true;
-			dessin();
-	});
-	
-	socket.on('joueur',function(){
-			dessinateur = false;
-			document.getElementById('toolbox').hidden = true;
-			document.getElementById('monMessage').disabled = false;
-			enjeu = true;
+
+	socket.on('tempsEcoule',function(){
+		console.log("fin");
+		document.getElementById('monMessage').disabled = false;
 	});
 
-	socket.on('startManche',function(nbMancheJouer,nbManche){
-		var afficheScore = document.getElementById("divInformation");
+	socket.on('dessinateur',function(){
+		
+		var afficheSyllabe = document.getElementById("divInformation");
+		for(var i = 0; i<3 ; i++){
+			g = document.createElement('div');
+			g.setAttribute("class", "boxChoix");
+			g.setAttribute("id", "boxChoix"+1);
+			g.innerHTML = "A";
+			afficheSyllabe.appendChild(g);
+		}
+		document.getElementById("divInformation").style.display="block";
+		setTimeout(function(){
+			document.getElementById("divInformation").innerHTML ="";
+			document.getElementById("divInformation").style.display="none";
+			//envoyer start manche ici et envoyer au joueur
+			
+		},5000);
+
+
+		dessinateur = true;
+		document.getElementById('toolbox').visible = true;
+		document.getElementById('toolbox').hidden = false;
+		document.getElementById('aide').addEventListener('click',function(){
+			console.log("aide demander");
+			//ne fonctionne pas
+			document.getElementById("helpOK").style.display="block";
+		});
+		documdocument.getElementById("helpOK").style.display="block";ent.getElementById('monMessage').disabled = true;
+		dessin();
+	});
+
+	socket.on('joueur',function(){
+	
+
+		document.getElementById("helpOK").style.display="none";
+		dessinateur = false;
+		document.getElementById('toolbox').hidden = true;
+		document.getElementById('monMessage').disabled = false;
+		enjeu = true;
+	});
+
+	socket.on('startManche',function(){
+		
 		afficheScore.innerHTML = "";
 		afficheScore.style.display = 'none';
-		document.getElementById('manches').innerHTML = "Manche "+nbMancheJouer+" sur "+nbManche;
-		
 	});
 
 	socket.on('finManche',function(joueurs){
@@ -205,26 +234,22 @@ document.addEventListener('DOMContentLoaded',function(){
 			document.getElementById(joueurs[i]).className = 'player';
 		}
 	});
-	socket.on('canvas',function(imgURL/*curr,x,y*/){
+	socket.on('canvas',function(dataImg){
 		if(!dessinateur){
-			var ctx = document.getElementById('dessin').getContext("2d");
-			var img = new Image;
-			img.src = imgURL;
-			img.onload = function () {
-			    ctx.drawImage(img, 0, 0);
-			};
-			//console.log(curr);
-			//console.log(x,y);
+			if (dataImg) {
+				var img = new Image();
+				img.onload = function() {
+					var ctxBG = document.getElementById("dessin").getContext("2d");
+					ctxBG.clearRect(0, 0, 500, 500);
+					ctxBG.drawImage(img, 0, 0, ctxBG.width, ctxBG.height);
+				}
+				img.src = "data:image/png;base64," + dataImg;
+			}
 		}
 	});
 	
-	function envoiCanvas(curr,x,y){
-		/*if(curr.isDown){
-			console.log('Hello');
-			socket.emit('canvas',curr,x,y);
-		}*/
-		var cvs = document.getElementById('dessin').toDataURL();
-		socket.emit('canvas',cvs);
+	function envoiCanvas(){
+		socket.emit('canvas',document.getElementById('dessin').toDataURL());
 	}
 	
 var arrowL = document.getElementsByClassName('arrowLeft');
@@ -266,7 +291,6 @@ var arrowL = document.getElementsByClassName('arrowLeft');
 			var x = e.clientX - rect.left;
 			var y = e.clientY - rect.top;
 			f.call(currentCommand, x, y);
-			envoiCanvas(currentCommand, x, y);
 		}
 		
 		overlay.addEventListener("mousemove", function(e) {
@@ -345,9 +369,6 @@ var arrowL = document.getElementsByClassName('arrowLeft');
 			ctx.beginPath();
 			ctx.arc(x, y, size.value/2, 0, 2*Math.PI);
 			ctx.fill();
-			/*if (this.isDown) {
-				envoiCanvas();
-			}*/
 		}
 		tracer.move = function(x, y) {
 			// appel classe mère
@@ -376,9 +397,6 @@ var arrowL = document.getElementsByClassName('arrowLeft');
 		gommer.ssFG = "black";
 		gommer.effacer = function(x, y) {
 			ctxBG.clearRect(x - size.value/2, y - size.value/2, size.value, size.value);
-			/*if (this.isDown) {
-				envoiCanvas();
-			}*/
 		}
 		gommer.move = function(x, y) {
 			this.__proto__.move.call(this, x, y);
@@ -407,9 +425,6 @@ var arrowL = document.getElementsByClassName('arrowLeft');
 			ctx.moveTo(this.startX, this.startY);
 			ctx.lineTo(x, y);
 			ctx.stroke();
-			/*if (this.isDown) {
-				envoiCanvas();
-			}*/
 		}
 		ligne.move = function(x, y) {
 			this.__proto__.move.call(this, x, y);
@@ -429,6 +444,38 @@ var arrowL = document.getElementsByClassName('arrowLeft');
 			this.dessiner(ctxBG, x, y);
 		}
 
+		
+		/**
+		 *  Commande pour dessiner un rectangle
+		 *      au survol si clic appuyé : ombrage du rectangle entre le point de départ et le point courant.
+		 *      au relâchement du clic : tracé du rectangle sur la zone de dessin
+		 */
+		var rectangle = new Commande();
+		rectangle.dessiner = function(ctx, x, y) {
+			ctx.lineWidth = size.value;
+			ctx.fillRect(this.startX, this.startY, x - this.startX, y - this.startY);
+			ctx.strokeRect(this.startX, this.startY, x - this.startX, y - this.startY);
+		}
+		rectangle.move = function(x, y) {
+			this.__proto__.move.call(this, x, y);
+			if (this.isDown) {
+				this.dessiner(ctxFG, x, y);
+			}
+			else {
+				ctxFG.fillRect(x - size.value/2, y - size.value/2, size.value, size.value);
+			}
+		}
+		rectangle.down = function(x, y) {
+			this.__proto__.down.call(this, x, y);
+			this.startX = x;
+			this.startY = y;
+		}
+		rectangle.up = function(x, y) {
+			this.__proto__.up.call(this, x, y);
+			this.dessiner(ctxBG, x, y);
+		}
+		
+		
 		/**
 		 *  Affectation des événements sur les boutons radios
 		 *  et detection du bouton radio en cours de sélection.
