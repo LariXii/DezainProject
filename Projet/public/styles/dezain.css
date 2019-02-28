@@ -315,8 +315,6 @@ width: -moz-available;
     height: 50px;
 }
 
-
-
 #gameHeader p{
     width: -moz-fit-content;
     float: left;
@@ -477,23 +475,6 @@ padding: 10px 0px;
     margin:2px;
 }
 
-.boxChoix{
-    position: relative;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 100px;
-    margin-bottom: 100px;
-    width: 200px;
-    height: 100px;
-    padding-top: 20px;
-    text-align: center;
-    border: solid 2px #000;
-}
-.boxChoix:hover{
-    background: whitesmoke;
-}
-
-
 /** TOOLBOX **/
 #toolbox > * {
     position: relative;
@@ -522,19 +503,6 @@ padding: 10px 0px;
 #toolbox label[for=ligne] {
     background-image: url(../images/icone-trait.png);   
 }
-#toolbox label[for=aide] {
-    float: right;
-    background-image: url(../images/help.png);   
-}
 #toolbox input:checked + label[for] {
     box-shadow: blue 0 0 5px;
-}
-#helpOK{
-    position: relative;
-    text-align: center;
-    height: 120px;
-    width: 150px;
-    border: 1px solid #666666;
-    font-size: 100px;
-    display: none;
 }

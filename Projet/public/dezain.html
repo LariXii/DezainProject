@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <title>Dezain</title>
     <link rel="stylesheet" href="./styles/dezain.css">
-	<script src="/socket.io/socket.io.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
     <script src="./js/dezain.js"></script>
 </head>
 
@@ -116,29 +116,30 @@
     <div id="logGame">
     <main>
         <div class="containerGame">
-                <div id="gameHeader"><p></p>
-					<div id="nom"><p></p>
-					</div>
-				</div>
+                <div id="gameHeader">
+                	<div id="temps"><p></p>
+			</div>
+			<div id="manches"><p></p>
+			</div>
+			<div id="essais"><p></p>
+			</div>
+			<div id="nom"><p></p>
+			</div>
+		</div>
                 <div id="playerList">
                 </div>
                 <div id="dessinateur">
 					<div id="divInformation">
-						
 					</div>
 					<div id="canvas">
 						<canvas id="dessin" width="500" height="500"></canvas>
 						<canvas id="overlay" width="500" height="500"></canvas>
-						<div id="helpOK">
-							a
-						</div>
 					</div>
 					<div id="toolbox" hidden>
 						<input type="radio" name="radCommande" id="tracer" checked> <label for="tracer"></label>
 						<input type="radio" name="radCommande" id="gommer"> <label for="gommer"></label>
 						<input type="radio" name="radCommande" id="ligne">  <label for="ligne"></label>
 						<input type="range" id="size" min="1" max="50" value="5">
-						<input type="radio" name="radCommande" id="aide">  <label for="aide"></label>
 					</div>
 				</div>
                 <div id="textList">
