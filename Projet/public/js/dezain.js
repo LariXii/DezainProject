@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 	socket.on('temps',function(tps){
 		tempsTour = tps;
-		document.getElementById('nom').innerHTML = tps;
+		document.getElementById('gameHeader').firstChild.innerHTML = "Il vous reste : "+tps+ " secondes !";
 	});
 
 	socket.on('bloquerChat',function(joueurs){
@@ -152,30 +152,49 @@ document.addEventListener('DOMContentLoaded',function(){
 	});
 
 	socket.on('dessinateur',function(){
+		var afficheSyllabe = document.getElementById("divInformation");
+		
+		for(var i = 0; i<3 ; i++){
+			g = document.createElement('div');
+			g.setAttribute("class", "boxChoix");
+			g.setAttribute("id", "boxChoix"+1);
+			g.innerHTML = "A";
+			afficheSyllabe.appendChild(g);
+		}
+		setTimeout(function(){
+			document.getElementById("divInformation").innerHTML ="";
+			document.getElementById("divInformation").style.display="none";
+			//envoyer start manche ici et envoyer au joueur
+			
+		},5000);
+
+
 		dessinateur = true;
 		document.getElementById('toolbox').visible = true;
 		document.getElementById('toolbox').hidden = false;
-		document.getElementById('monMessage').disabled = true;
+		document.getElementById('aide').addEventListener('click',function(){
+			console.log("aide demander");
+			//ne fonctionne pas
+			document.getElementById("helpOK").style.display="block";
+		});
+		documdocument.getElementById("helpOK").style.display="block";ent.getElementById('monMessage').disabled = true;
 		dessin();
 	});
 
 	socket.on('joueur',function(){
+	
+
+		document.getElementById("helpOK").style.display="none";
 		dessinateur = false;
 		document.getElementById('toolbox').hidden = true;
 		document.getElementById('monMessage').disabled = false;
 		enjeu = true;
 	});
-	
-	socket.on('infoTour',function(Jeu){
-	
-	});
 
 	socket.on('startManche',function(){
-		var afficheScore = document.getElementById("divInformation");
+		
 		afficheScore.innerHTML = "";
 		afficheScore.style.display = 'none';
-		var gH = document.getElementById('gameHeader');
-		
 	});
 
 	socket.on('finManche',function(joueurs){

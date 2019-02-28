@@ -185,7 +185,7 @@ var Jeu = {
         }
     },
     deconnecterJoueur : function(joueur){
-        console.log(joueur,"se déconnecte");
+        console.log(joueur," se déconnecte");
         delete Jeu.ensembleJoueurs[joueur];
         this.t_nomJoueurs = Object.keys(Jeu.ensembleJoueurs);
         this.nbJoueur--;
@@ -202,20 +202,18 @@ var Jeu = {
         if(Jeu.enTour){
             console.log(Jeu.tour.drawer);
             if(joueur === Jeu.tour.drawer){
+                Jeu.tour.Stop();
                 console.log('Le dessinateur s\'est déconnecté');
-                if(Jeu.nbJoueur > 1){
-                	console.log('Il reste des joueurs, on calcul les scores');
-                	Jeu.tour.Stop();
-                	Jeu.manche.lancerTour();
+                if(Jeu.nbJoueur === 1){
+                    Jeu.tour.Stop();
+                    Jeu.manche.fin();
                 }
             }
             if(Jeu.nbJoueur === 1){
-            		console.log('Ici');
                 Jeu.tour.Stop();
                 Jeu.manche.fin();
             }
         }
-        console.log("Joueurs en jeu",Jeu.manche.t_doisJouer);
     },
     manche : {
         t_doisJouer : [],
@@ -236,25 +234,19 @@ var Jeu = {
                 }
             }
             console.log('Les joueurs non dessinateur sont : ',this.nonDessinateur);
-            Jeu.tour.setTour(this.nonDessinateur);
+            Jeu.tour.setTour(this.nonDessinateur,this.t_doisJouer);
         },
         fin(){
             Jeu.enJeu = false;
             Jeu.nbMancheJouer++;
             if(Jeu.nbMancheJouer == Jeu.nbManche){
                 io.sockets.emit('finJeu',Jeu.ensembleJoueurs);
-                console.log('Fin du jeu');
             }else{
-            	if(nbJoueur > 1){
                 io.sockets.emit('finManche',Jeu.ensembleJoueurs);
                 for(var i in Jeu.ensembleJoueurs){
                     Jeu.ensembleJoueurs[i].aEteDrawer = false;
                 }
                 setTimeout(function(){Jeu.manche.Start(Jeu.t_nomJoueurs);},5000);
-               }
-               else{
-               	io.sockets.emit('attenteJoueur');
-               }
             }
         },
     },
@@ -264,14 +256,16 @@ var Jeu = {
         solution : /^ra$/,
         nbTrouve : 0,
         nbBloque : 0,
-        setTour(joueursNonDrawer){
+        setTour(joueursNonDrawer,joueurDuTour){
             this.nbTrouve = 0;
             this.nbBloque = 0;
             for(var j in Jeu.ensembleJoueurs){
                 Jeu.ensembleJoueurs[j].trouveSolution = false;
                 Jeu.ensembleJoueurs[j].nombreEssai = 3;
                 Jeu.ensembleJoueurs[j].estBloque = false;
-                Jeu.ensembleJoueurs[j].dessinateur = false;
+            }
+            for(var i in joueurDuTour) {
+                Jeu.ensembleJoueurs[joueurDuTour[i]].dessinateur = false;
             }
             console.log('JOUEURS QUI PEUVENT ETRE DESSINATEUR : ',joueursNonDrawer);
             
@@ -286,12 +280,20 @@ var Jeu = {
             Jeu.ensembleJoueurs[this.drawer].aEteDrawer = true;
             Jeu.ensembleJoueurs[this.drawer].estBloque = true;
             this.nbBloque++;
-            io.sockets.emit('infoTour',Jeu);
+            clients[this.drawer].emit('dessinateur');
+            this.joueursTour = [];
+            for(var i in Jeu.manche.t_doisJouer){
+                if(Jeu.ensembleJoueurs[Jeu.manche.t_doisJouer[i]].dessinateur === false){
+                    clients[Jeu.manche.t_doisJouer[i]].emit('joueur');
+                    this.joueursTour.push(Jeu.manche.t_doisJouer[i]);
+                }
+            }
             Jeu.tour.Start(Jeu.tpsTour,this.joueursTour,this.drawer);
         },
         Start: function(tpsTour,joueurs,dessinateur){
             Jeu.enTour = true;
             Jeu.chrono.Start(tpsTour);
+            console.log('joueurs du tour :',joueurs);
         },
         Stop(){
             console.log('Fin du tour');
@@ -303,9 +305,7 @@ var Jeu = {
         },
         CalculScore(){
             console.log('Il y a eu ',this.nbTrouve,' joueur(s) qui ont trouvé la solution\nIl y a ',Jeu.nbJoueur,' joueur(s) dans la partie');
-            if(Jeu.ensembleJoueurs[Jeu.tour.drawer]){
-            	Jeu.ensembleJoueurs[Jeu.tour.drawer].score += parseInt(20*(this.nbTrouve/(Jeu.nbJoueur-1)));
-            }
+            Jeu.ensembleJoueurs[Jeu.tour.drawer].score += parseInt(20*(this.nbTrouve/(Jeu.nbJoueur-1)));
             console.log('Le dessinateur est ',Jeu.tour.drawer,' il a gagné ',parseInt(20*(this.nbTrouve/(Jeu.nbJoueur-1))),'points');
             Jeu.t_nomJoueurs.sort(function(a,b){
                 return Jeu.ensembleJoueurs[b].score - Jeu.ensembleJoueurs[a].score;
@@ -447,7 +447,6 @@ io.on('connection', function (socket) {
         Jeu.ajoutJoueur(joueur);
         // envoi d'un message de bienvenue à ce client
         socket.emit("bienvenue", joueur.getNom());
-        socket.emit('infoPartie',Jeu);
         // envoi aux autres clients
         socket.broadcast.emit("message", {
             from: null,
@@ -531,11 +530,13 @@ io.on('connection', function (socket) {
             Jeu.deconnecterJoueur(joueur.getNom());
             // envoi de la nouvelle liste pour mise à jour
             socket.broadcast.emit("liste", Jeu.ensembleJoueurs,Jeu.t_nomJoueurs);
-            if(Jeu.nbJoueur === 0){
+            if(Object.keys(Jeu.ensembleJoueurs).length === 0){
                 Jeu.chrono.Stop();
                 Jeu.enJeu = false;
                 Jeu.finManche = false;
+                Jeu = {};
                 console.log("On supprime la partie");
+                console.log(Jeu);
             }
         }
     });
@@ -552,12 +553,14 @@ io.on('connection', function (socket) {
             Jeu.deconnecterJoueur(joueur.getNom());
             // envoi de la nouvelle liste pour mise à jour
             socket.broadcast.emit("liste", Jeu.ensembleJoueurs,Jeu.t_nomJoueurs);
-            console.log("Client déconnecté\nIl reste "+Jeu.nbJoueur+" joueur(s)");
-            if(Jeu.nbJoueur === 0){
+            console.log("Client déconnecté\nIl reste "+Object.keys(Jeu.ensembleJoueurs).length+" joueur(s)");
+            if(Object.keys(Jeu.ensembleJoueurs).length === 0){
                 Jeu.chrono.Stop();
                 Jeu.enJeu = false;
                 Jeu.finManche = false;
+                Jeu = {};
                 console.log("On supprime la partie");
+                console.log(Jeu);
             }
         }
     });
