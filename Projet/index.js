@@ -95,7 +95,7 @@ function Glyphes(glyphes,nomPartie) {
         //Ici cbs devrais contenir les valeurs des inputs
         return Object.keys(glyphes).filter(function (elem, _index, _array) {
             // closure qui s'appuie sur les checkbox qui ont été sélectionnées (cbs)
-            for (var i = 1; i < serveur.ensemblePartie[nomPartie].cbs.length; i++) {
+            for (var i = 0; i < serveur.ensemblePartie[nomPartie].cbs.length; i++) {
                 // on vérifie si la clé (elem) matche la regex définie comme valeur de la checkbox
                 var patt = new RegExp("\\b" + serveur.ensemblePartie[nomPartie].cbs[i] + "\\b", "g");
                 if (patt.test(elem)) {
@@ -193,15 +193,14 @@ class Partie {
         this.enJeu = false;
     }
     enjeu() {
-        return this.enJeu();
+        return this.enJeu;
     }
     getJoueursManche() {
         return this.joueursManche;
     }
     lancerManche() {
-        console.log('La partie',this.nomPartie,' commence !');
-        this.enJeu = true;
         this.nbMancheJouer++;
+        console.log('La manche',this.nbMancheJouer,' commence !');
         for(var i in this.socketJoueur) {
             this.socketJoueur[i].emit('startManche',this.nbMancheJouer,this.nbManche);
         }
@@ -212,7 +211,6 @@ class Partie {
 class Manche {
     constructor(nomPartie){
         console.log('Nouvelle manche créée');
-        this.nonDessinateur = [];
         this.joueursManche = serveur.ensemblePartie[nomPartie].joueursManche;
         this.ensembleJoueursM = serveur.ensemblePartie[nomPartie].ensembleJoueurs;
         this.nomPartie = nomPartie;
@@ -238,11 +236,13 @@ class Manche {
             // choix du glyphe à deviner parmi les 3
             var rand = Math.random() * 3 | 0;
             this.last = this.aTrouve[rand].key;
+            console.log(this.aTrouve);
             // affichage des choix possibles (avec traduction)
             //afficherChoix(last, aTrouver);
     }
     lancerTour(){
         console.log('Joueurs qui peuvent être dessinateur',this.joueursManche);
+        this.nonDessinateur = [];
         for(var i in this.joueursManche){
             if(!this.ensembleJoueursM[this.joueursManche[i]].aEteDrawer){
                 this.nonDessinateur.push(this.ensembleJoueursM[this.joueursManche[i]].nom);
@@ -296,17 +296,22 @@ class Manche {
         console.log("Les joueurs qui n'ont pas encore dessiné sont ",this.nonDessinateur);
     }
     fin(){
-        Jeu.enJeu = false;
-        if(Jeu.nbMancheJouer == Jeu.nbManche){
-            io.sockets.emit('finJeu',Jeu.ensembleJoueurs);
+        serveur.ensemblePartie[this.nomPartie].enJeu = false;
+        if(serveur.ensemblePartie[this.nomPartie].nbMancheJouer == serveur.ensemblePartie[this.nomPartie].nbManche){
+            for(var i in serveur.ensemblePartie[this.nomPartie].socketJoueur){
+                serveur.ensemblePartie[this.nomPartie].socketJoueur[i].emit('finJeu',this.ensembleJoueursM);
+            }
             console.log('Fin du jeu');
         }else{
-            if(Jeu.nbJoueur > 1){
-                io.sockets.emit('finManche',Jeu.ensembleJoueurs);
-                for(var i in Jeu.ensembleJoueurs){
-                    Jeu.ensembleJoueurs[i].aEteDrawer = false;
+            if(serveur.ensemblePartie[this.nomPartie].nbJoueur > 1){
+                for(var i in serveur.ensemblePartie[this.nomPartie].socketJoueur){
+                    serveur.ensemblePartie[this.nomPartie].socketJoueur[i].emit('finManche',this.ensembleJoueursM);
                 }
-                setTimeout(function(){Jeu.manche.Start(Jeu.t_nomJoueurs);},5000);
+                for(var i in this.ensembleJoueursM){
+                    this.ensembleJoueursM[i].aEteDrawer = false;
+                }
+                var nomM = this.nomPartie;
+                setTimeout(function(){serveur.ensemblePartie[nomM].lancerManche();},5000);
             }
             else{
                 io.sockets.emit('attenteJoueur');
@@ -316,13 +321,15 @@ class Manche {
 }
 class Tour  {
     constructor(nomPartie,drawer,aTrouve){
+        console.log('Nouveau tour');
         this.drawer = drawer;
         this.tpsTour = serveur.ensemblePartie[nomPartie].tpsTour;
         this.nomPartie = nomPartie;
         this.ensembleJoueursT = serveur.ensemblePartie[this.nomPartie].ensembleJoueurs;
-        this.solution = '/^ra$/';
+        this.solution = null;
         this.nbTrouve = 0;
         this.nbBloque = 0;
+        this.chrono = null;
         console.log('Lettre selectionné du tour',aTrouve);
         serveur.ensemblePartie[this.nomPartie].socketJoueur[this.drawer].emit('dessinateur',aTrouve);
         for(var i in serveur.ensemblePartie[this.nomPartie].socketJoueur) {
@@ -334,37 +341,58 @@ class Tour  {
             }
         }
     }
-    Start(tpsTour,joueurs,dessinateur){
+
+    getSolution(){
+        return this.solution;
+    }
+
+    trouve(){
+        this.nbTrouve++;
+    }
+
+    bloque(){
+        this.nbBloque++;
+    }
+
+    Start(solution){
+        serveur.ensemblePartie[this.nomPartie].enJeu = true;
+        console.log(solution);
+        this.solution = new RegExp('^'+solution+'$');
         console.log('Le tour commence');
-        //Jeu.chrono.Start(tpsTour);
+        console.log('Le canvas choisi est :',this.solution);
+        this.chrono = new Chrono(this.tpsTour,this.nomPartie);
     }
     Stop(){
+        serveur.ensemblePartie[this.nomPartie].enJeu = false;
         console.log('Fin du tour');
-        Jeu.enTour = false;
-        Jeu.chrono.Stop();
-        Jeu.tour.CalculScore();
-        io.sockets.emit('liste',Jeu.ensembleJoueurs,Jeu.t_nomJoueurs);
-        io.sockets.emit('finTour',Jeu.t_nomJoueurs);
+        this.CalculScore();
+        for(var i in serveur.ensemblePartie[this.nomPartie].socketJoueur){
+            console.log("J'envoie les infos");
+            serveur.ensemblePartie[this.nomPartie].socketJoueur[i].emit('liste',this.ensembleJoueursT,serveur.ensemblePartie[this.nomPartie].ordreJoueur);
+            serveur.ensemblePartie[this.nomPartie].socketJoueur[i].emit('finTour',serveur.ensemblePartie[this.nomPartie].ordreJoueur);
+        }
     }
     CalculScore(){
-        console.log('Il y a eu ',this.nbTrouve,' joueur(s) qui ont trouvé la solution\nIl y a ',Jeu.nbJoueur,' joueur(s) dans la partie');
-        if(Jeu.ensembleJoueurs[Jeu.tour.drawer]){
-            Jeu.ensembleJoueurs[Jeu.tour.drawer].score += parseInt(20*(this.nbTrouve/(Jeu.nbJoueur-1)));
+        console.log('Il y a eu ',this.nbTrouve,' joueur(s) qui ont trouvé la solution\nIl y a ',serveur.ensemblePartie[this.nomPartie].nbJoueur,' joueur(s) dans la partie');
+        console.log(serveur.ensemblePartie[this.nomPartie].ordreJoueur);
+        if(this.ensembleJoueursT[this.drawer]){
+            (this.ensembleJoueursT[this.drawer].aide)?this.ensembleJoueursT[this.drawer].score += parseInt((20*(this.nbTrouve/(serveur.ensemblePartie[this.nomPartie].nbJoueur-1)))/2):this.ensembleJoueursT[this.drawer].score += parseInt(20*(this.nbTrouve/(serveur.ensemblePartie[this.nomPartie].nbJoueur-1)));
         }
-        console.log('Le dessinateur est ',Jeu.tour.drawer,' il a gagné ',parseInt(20*(this.nbTrouve/(Jeu.nbJoueur-1))),'points');
-        Jeu.t_nomJoueurs.sort(function(a,b){
-            return Jeu.ensembleJoueurs[b].score - Jeu.ensembleJoueurs[a].score;
+        var nomT = this.nomPartie;
+        serveur.ensemblePartie[this.nomPartie].ordreJoueur.sort(function(a,b){
+            return serveur.ensemblePartie[nomT].ensembleJoueurs[b].score - serveur.ensemblePartie[nomT].ensembleJoueurs[a].score;
         });
         var rank = 1;
-        for(var i in Jeu.t_nomJoueurs){
-            Jeu.ensembleJoueurs[Jeu.t_nomJoueurs[i]].rank = rank;
+        for(var i in serveur.ensemblePartie[this.nomPartie].ordreJoueur){
+            this.ensembleJoueursT[serveur.ensemblePartie[this.nomPartie].ordreJoueur[i]].rank = rank;
             rank++;
         }
     }
 }
 
-class chrono{
-    constructor(secondsLeft){
+class Chrono{
+    constructor(secondsLeft,nomPartie){
+        this.nomPartie = nomPartie;
         //Initialisation du nombre de secondes selon la valeur passée en paramètre
         this.secondsLeft = secondsLeft;
         //Démarrage du chrono
@@ -373,28 +401,33 @@ class chrono{
 
     Tick(){
         //On actualise la valeur affichée du nombre de secondes
-        io.sockets.emit('temps',--this.secondsLeft);
-        if(Jeu.tour.nbBloque === Jeu.nbJoueur){
+        --this.secondsLeft;
+        for(var i in serveur.ensemblePartie[this.nomPartie].socketJoueur){
+            serveur.ensemblePartie[this.nomPartie].socketJoueur[i].emit('temps',this.secondsLeft);
+        }
+        console.log('Il y a ',serveur.ensemblePartie[this.nomPartie].manche.tour.nbBloque,'joueurs bloqué');
+        if(serveur.ensemblePartie[this.nomPartie].manche.tour.nbBloque == serveur.ensemblePartie[this.nomPartie].nbJoueur-1){
             this.Stop();
             //On regarde si il reste des dessinateurs potentiel
-            if(Jeu.manche.nonDessinateur.length-1 === 0){
-                Jeu.tour.Stop();
-                Jeu.manche.fin();
+            console.log('Il reste ',serveur.ensemblePartie[this.nomPartie].manche.nonDessinateur.length,'joueurs qui n\'ont pas fait dessinateur');
+            if( serveur.ensemblePartie[this.nomPartie].manche.nonDessinateur.length-1 == 0){
+                serveur.ensemblePartie[this.nomPartie].manche.tour.Stop();
+                serveur.ensemblePartie[this.nomPartie].manche.fin();
             }else{
-                Jeu.tour.Stop();
-                Jeu.manche.lancerTour();
+                serveur.ensemblePartie[this.nomPartie].manche.tour.Stop();
+                serveur.ensemblePartie[this.nomPartie].manche.lancerTour();
             }
         }else{
             if(this.secondsLeft === 0){
                 //Tps écoulé -> arrêt du timer
                 this.Stop();
                 //On regarde si il reste des dessinateurs potentiel
-                if(Jeu.manche.nonDessinateur.length-1 === 0){
-                    Jeu.tour.Stop();
-                    Jeu.manche.fin();
+                if( serveur.ensemblePartie[this.nomPartie].manche.nonDessinateur.length-1 == 0){
+                    serveur.ensemblePartie[this.nomPartie].manche.tour.Stop();
+                    serveur.ensemblePartie[this.nomPartie].manche.fin();
                 }else{
-                    Jeu.tour.Stop();
-                    Jeu.manche.lancerTour();
+                    serveur.ensemblePartie[this.nomPartie].manche.tour.Stop();
+                    serveur.ensemblePartie[this.nomPartie].manche.lancerTour();
                 }
             }
         }
@@ -421,6 +454,7 @@ class Joueur {
         this.trouveSolution = false;
         this.aEteDrawer = false;
         this.estBloque = false;
+        this.aide = false;
     }
     getNom(){
         return this.nom;
@@ -471,10 +505,16 @@ io.on('connection', function (socket) {
     });
 
     socket.on('lanceTour',function(solution){
-        serveur.ensemblePartie[solution.nomPartie].manche.tour.Start();
+        console.log('On lance le tour');
+        serveur.ensemblePartie[solution.nomPartie].manche.tour.Start(solution.solution);
         for(var i in serveur.ensemblePartie[solution.nomPartie].socketJoueur){
             serveur.ensemblePartie[solution.nomPartie].socketJoueur[i].emit('startTour',serveur.ensemblePartie[solution.nomPartie].tpsTour);
         }
+    });
+
+    socket.on('aideDemandee',function(nom){
+       var drawer = serveur.ensemblePartie[nom].manche.tour.drawer;
+       serveur.ensemblePartie[nom].ensembleJoueurs[drawer].aide = true;
     });
 
     socket.on("login", function(logJoueur) {
@@ -508,11 +548,9 @@ io.on('connection', function (socket) {
     });
 
     socket.on('canvas',function(img,nomPartie/*curr,x,y*/){
-        if(serveur.ensemblePartie[nomPartie].ensembleJoueurs) {
-            for (var i in serveur.ensemblePartie[nomPartie].ensembleJoueurs) {
-                if (!serveur.ensemblePartie[nomPartie].ensembleJoueurs[i].dessinateur) {
-                    serveur.ensemblePartie[nomPartie].socketJoueur[i].emit('canvas', img/*curr,x,y*/);
-                }
+        for (var i in serveur.ensemblePartie[nomPartie].ensembleJoueurs) {
+            if (!serveur.ensemblePartie[nomPartie].ensembleJoueurs[i].dessinateur) {
+                serveur.ensemblePartie[nomPartie].socketJoueur[i].emit('canvas', img/*curr,x,y*/);
             }
         }
     });
@@ -522,42 +560,41 @@ io.on('connection', function (socket) {
      */
     socket.on("message", function(msg) {
         console.log("Reçu message");
-        /*// si jamais la date n'existe pas, on la rajoute
-        msg.date = Date.now();
-        // si message privé, envoi seulement au destinataire
-        if (msg.to != null && clients[msg.to] !== undefined) {
-            console.log(" --> message privé");
-            clients[msg.to].emit("message", msg);
-            if (msg.from != msg.to) {
-                socket.emit("message", msg);
-            }
-        }
-        else {*/
-        serveur.ensemblePartie[msg.serv]
         if(!serveur.ensemblePartie[msg.serv].enjeu()) {
             console.log(" --> broadcast");
-            io.sockets.emit("message", msg);
+            for(var i in serveur.ensemblePartie[msg.serv].socketJoueur){
+                serveur.ensemblePartie[msg.serv].socketJoueur[i].emit("message", msg);
+            }
         }
         else{
-            Jeu.ensembleJoueurs[msg.from].nombreEssai--;
-            if(Jeu.ensembleJoueurs[msg.from].nombreEssai === 0){
-                clients[msg.from].emit('bloquerChat',Jeu.ensembleJoueurs[msg.from]);
-                Jeu.ensembleJoueurs[msg.from].estBloque = true;
-                Jeu.tour.nbBloque++;
+            serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].nombreEssai--;
+            if(serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].nombreEssai === 0){
+                serveur.ensemblePartie[msg.serv].socketJoueur[msg.from].emit('bloquerChat',serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from]);
+                serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].estBloque = true;
+                serveur.ensemblePartie[msg.serv].manche.tour.bloque();
+
             }
-            if(msg.text.match(Jeu.tour.solution)){
-                io.sockets.emit('trouveSolution',msg.from);
-                console.log(msg.from+" a trouvé la solution il gagne ",parseInt(20 * (msg.temps / Jeu.tpsTour)),'points');
-                Jeu.ensembleJoueurs[msg.from].score += parseInt(15 * (msg.temps / Jeu.tpsTour));
-                Jeu.ensembleJoueurs[msg.from].trouveSolution = true;
-                Jeu.ensembleJoueurs[msg.from].estBloque = true;
+            if(msg.text.match(serveur.ensemblePartie[msg.serv].manche.tour.getSolution())){
+                for(var i in serveur.ensemblePartie[msg.serv].socketJoueur){
+                    serveur.ensemblePartie[msg.serv].socketJoueur[i].emit("trouveSolution", msg.from);
+                }
+                console.log(msg.from+" a trouvé la solution il gagne ",parseInt(20 * (msg.temps / serveur.ensemblePartie[msg.serv].tpsTour)),'points');
+                serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].score += parseInt(15 * (msg.temps / serveur.ensemblePartie[msg.serv].tpsTour));
+                serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].trouveSolution = true;
+                if(!serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].estBloque){
+                    serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].estBloque = true;
+                    serveur.ensemblePartie[msg.serv].manche.tour.bloque();
+                    serveur.ensemblePartie[msg.serv].socketJoueur[msg.from].emit('bloquerChat',serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from]);
+                }
+                serveur.ensemblePartie[msg.serv].manche.tour.trouve();
                 msg.find = true;
-                Jeu.tour.nbTrouve++;
-                Jeu.tour.nbBloque++;
-                clients[msg.from].emit('bloquerChat',Jeu.ensembleJoueurs[msg.from]);
-                io.sockets.emit("message", msg);
+                for(var i in serveur.ensemblePartie[msg.serv].socketJoueur){
+                    serveur.ensemblePartie[msg.serv].socketJoueur[i].emit("message", msg);
+                }
             }else{
-                io.sockets.emit("message", msg);
+                for(var i in serveur.ensemblePartie[msg.serv].socketJoueur){
+                    serveur.ensemblePartie[msg.serv].socketJoueur[i].emit("message", msg);
+                }
             }
         }
         //}
