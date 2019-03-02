@@ -401,6 +401,7 @@ document.addEventListener('DOMContentLoaded',function(){
 	});
 
 	socket.on('joueur',function(){
+		currentCommand = null;
 		dessinateur = false;
 		document.getElementById('toolbox').hidden = true;
 		document.getElementById('monMessage').disabled = false;
