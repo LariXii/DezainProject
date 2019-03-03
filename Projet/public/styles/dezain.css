@@ -302,7 +302,7 @@ width: -moz-available;
 }
 
 #manches{
-    width: fit-content;
+    width: 204px;
     height: 52px;
     float: left;
     margin: 6px;
@@ -369,6 +369,7 @@ width: -moz-available;
 }
 
 #bcLanceGame{
+    display:none;
     position: absolute;
     width: 100%;
     height: 10%;

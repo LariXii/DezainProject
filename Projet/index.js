@@ -142,7 +142,8 @@ class Partie {
         this.joueursManche = [];
         this.ordreJoueur = [];
         this.enJeu = false;
-        this.enTour = false;
+        this.enAttente = false;
+        this.enScore = false;
         this.nbMancheJouer = 0;
         this.nbJoueur = 0;
         this.manche = null;
@@ -201,6 +202,7 @@ class Partie {
     lancerManche() {
         this.nbMancheJouer++;
         console.log('La manche',this.nbMancheJouer,' commence !');
+        serveur.ensemblePartie[this.nomPartie].enScore = true ;
         for(var i in this.socketJoueur) {
             this.socketJoueur[i].emit('startManche',this.nbMancheJouer,this.nbManche);
         }
@@ -237,10 +239,9 @@ class Manche {
             var rand = Math.random() * 3 | 0;
             this.last = this.aTrouve[rand].key;
             console.log(this.aTrouve);
-            // affichage des choix possibles (avec traduction)
-            //afficherChoix(last, aTrouver);
     }
     lancerTour(){
+        serveur.ensemblePartie[this.nomPartie].enScore = false ;
         console.log('Joueurs qui peuvent être dessinateur',this.joueursManche);
         this.nonDessinateur = [];
         for(var i in this.joueursManche){
@@ -282,14 +283,14 @@ class Manche {
                 console.log('Le dessinateur s\'est déconnecté');
                 if(nbJoueur > 1){
                     console.log('Il reste des joueurs, on calcul les scores');
-                    /*Jeu.tour.Stop();
-                    Jeu.manche.lancerTour();*/
+                    this.tour.Stop();
+                    this.lancerTour();
                 }
             }
             if(nbJoueur === 1){
                 console.log('PAUSE');
-                /*Jeu.tour.Stop();
-                Jeu.manche.fin();*/
+                this.tour.Stop();
+                this.fin();
             }
         console.log("Joueurs en jeu",serveur.ensemblePartie[this.nomPartie].ordreJoueur);
         console.log('Les joueurs qui doivent jouer sont ',this.joueursManche);
@@ -304,6 +305,7 @@ class Manche {
             console.log('Fin du jeu');
         }else{
             if(serveur.ensemblePartie[this.nomPartie].nbJoueur > 1){
+                serveur.ensemblePartie[this.nomPartie].enScore = true ;
                 for(var i in serveur.ensemblePartie[this.nomPartie].socketJoueur){
                     serveur.ensemblePartie[this.nomPartie].socketJoueur[i].emit('finManche',this.ensembleJoueursM);
                 }
@@ -330,8 +332,10 @@ class Tour  {
         this.nbTrouve = 0;
         this.nbBloque = 0;
         this.chrono = null;
+        this.canvas = null;
         console.log('Lettre selectionné du tour',aTrouve);
         serveur.ensemblePartie[this.nomPartie].socketJoueur[this.drawer].emit('dessinateur',aTrouve);
+        serveur.ensemblePartie[this.nomPartie].enAttente = true;
         for(var i in serveur.ensemblePartie[this.nomPartie].socketJoueur) {
             serveur.ensemblePartie[this.nomPartie].socketJoueur[i].emit('message',{from: null, text: this.drawer+" est le dessinateur",find : false,temps : null});
         }
@@ -480,7 +484,7 @@ io.on('connection', function (socket) {
      */
 
     socket.on("creerPartie", function(options) {
-        console.log("Nouveau jeu créé par " + options.nomCreateur);
+        console.log("Nouveau jeu créé par " + options.createur);
         var partie = new Partie(options.createur,options.nomPartie,options.nbManche,options.nbJoueur,options.tpsTour,options.alphabet,options.cbs);
         serveur.ajoutPartie(partie);
         io.sockets.emit('listePartie',Object.keys(serveur.ensemblePartie));
@@ -506,9 +510,13 @@ io.on('connection', function (socket) {
 
     socket.on('lanceTour',function(solution){
         console.log('On lance le tour');
+        serveur.ensemblePartie[solution.nomPartie].enAttente = false;
         serveur.ensemblePartie[solution.nomPartie].manche.tour.Start(solution.solution);
         for(var i in serveur.ensemblePartie[solution.nomPartie].socketJoueur){
-            serveur.ensemblePartie[solution.nomPartie].socketJoueur[i].emit('startTour',serveur.ensemblePartie[solution.nomPartie].tpsTour);
+            serveur.ensemblePartie[solution.nomPartie].socketJoueur[i].emit('startTour',serveur.ensemblePartie[solution.nomPartie].tpsTour,
+                serveur.ensemblePartie[solution.nomPartie].nbMancheJouer,
+                serveur.ensemblePartie[solution.nomPartie].nbManche
+            );
         }
     });
 
@@ -529,7 +537,17 @@ io.on('connection', function (socket) {
         serveur.ensemblePartie[logJoueur.nomPartie].ajoutJoueur(joueur,socket);
         // envoi d'un message de bienvenue à ce client
         socket.emit("bienvenue", joueur.getNom());
-        //socket.emit('infoPartie',Jeu);
+        var cvs = null;
+        if(serveur.ensemblePartie[logJoueur.nomPartie].manche) {
+            cvs = serveur.ensemblePartie[logJoueur.nomPartie].manche.tour.canvas;
+        }
+        socket.emit("infoPartie",
+            {mancheJouer : serveur.ensemblePartie[logJoueur.nomPartie].nbMancheJouer,
+                manche :  serveur.ensemblePartie[logJoueur.nomPartie].nbManche,
+                enScore : serveur.ensemblePartie[logJoueur.nomPartie].enScore,
+                enAttente :serveur.ensemblePartie[logJoueur.nomPartie].enAttente,
+                canvas :cvs }
+        );
         // envoi aux autres clients
         for (var i in serveur.ensemblePartie[logJoueur.nomPartie].socketJoueur) {
             serveur.ensemblePartie[logJoueur.nomPartie].socketJoueur[i].emit("message", {
@@ -547,10 +565,11 @@ io.on('connection', function (socket) {
         }
     });
 
-    socket.on('canvas',function(img,nomPartie/*curr,x,y*/){
+    socket.on('canvas',function(img,nomPartie){
+        serveur.ensemblePartie[nomPartie].manche.tour.canvas = img;
         for (var i in serveur.ensemblePartie[nomPartie].ensembleJoueurs) {
             if (!serveur.ensemblePartie[nomPartie].ensembleJoueurs[i].dessinateur) {
-                serveur.ensemblePartie[nomPartie].socketJoueur[i].emit('canvas', img/*curr,x,y*/);
+                serveur.ensemblePartie[nomPartie].socketJoueur[i].emit('canvas', img);
             }
         }
     });

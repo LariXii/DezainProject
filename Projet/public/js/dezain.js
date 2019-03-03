@@ -192,6 +192,7 @@ document.addEventListener('DOMContentLoaded',function(){
 	document.getElementById("createGame").addEventListener("click",function(){
 		if(document.getElementById('pseudoCrea').value) {
 			user = document.getElementById('pseudoCrea').value;
+			console.log('Createur',user);
 		}
 		if(document.getElementById('nomPartie').value) {
 			nomPartie = document.getElementById('nomPartie').value;
@@ -200,7 +201,7 @@ document.addEventListener('DOMContentLoaded',function(){
 			for(var i in cbs){
 				if(cbs[i].value)valueCbs.push(cbs[i].value);
 			}
-			socket.emit("creerPartie", {
+			socket.emit("creerPartie",{
 				createur: user,nomPartie : nomPartie ,nbJoueur: document.getElementById('btnNombreJoueur').value,
 				nbManche: document.getElementById('btnNombreManche').value,
 				tpsTour: document.getElementById('btnDureeTour').value,
@@ -210,6 +211,7 @@ document.addEventListener('DOMContentLoaded',function(){
 			socket.emit("login", {pseudo: user, avatar: currentAvatar, nomPartie: nomPartie});
 			document.getElementById("radio1").checked = false;
 			document.getElementById("radio2").checked = true;
+			document.getElementById('bcLanceGame').style.display = 'block';
 		}
 		else{
 			alert('Nom de partie obligatoire');
@@ -414,6 +416,36 @@ document.addEventListener('DOMContentLoaded',function(){
 		document.getElementById("divInformation").style.display="block";
 	});
 
+	socket.on('infoPartie',function(info){
+		document.getElementById('temps').innerHTML = '';
+		document.getElementById('manches').innerHTML = "Manches "+info.mancheJouer+" / "+info.manche;
+		if(info.enAttente){
+			console.log('Jeu en attente',info.enAttente);
+			var afficheAttente = document.getElementById("divInformation");
+			var p = document.createElement('p');
+			p.innerHTML = "En attente du dessinateur";
+			afficheAttente.appendChild(p);
+			document.getElementById("divInformation").style.display="block";
+		}else{
+			if(info.enScore){
+				console.log('Jeu en score',info.enScore);
+				var afficheAttente = document.getElementById("divInformation");
+				var p = document.createElement('p');
+				p.innerHTML = "Lancement de la manche";
+				afficheAttente.appendChild(p);
+				document.getElementById("divInformation").style.display="block";
+			}
+			else{
+				var img = new Image;
+				img.src = info.canvas;
+				img.onload = function () {
+					ctxBG.drawImage(img, 0, 0);
+				};
+			}
+		}
+	});
+
+
 	socket.on('startManche',function(nbMancheJouer,nbManche){
 		var afficheScore = document.getElementById("divInformation");
 		afficheScore.innerHTML = "";
@@ -422,11 +454,12 @@ document.addEventListener('DOMContentLoaded',function(){
 
 	});
 
-	socket.on('startTour',function(tps){
+	socket.on('startTour',function(tps,nbMancheJouer,nbManche){
 		var afficheScore = document.getElementById("divInformation");
 		afficheScore.innerHTML = "";
 		afficheScore.style.display = 'none';
 		document.getElementById('temps').innerHTML = tps;
+		document.getElementById('manches').innerHTML = "Manches "+nbMancheJouer+" / "+nbManche;
 	});
 
 	socket.on('finManche',function(joueurs){
