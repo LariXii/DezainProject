@@ -238,6 +238,33 @@ width: -moz-available;
     height: 100vh;
 }
 
+#loader{
+    width: 200px;
+    height: 200px;
+   
+    position :absolute;
+    left: 50%;
+    right: 50%;
+    margin-left: -60px;
+    margin-top: -60px;
+    border-radius: 50%;
+    animation:loader 2s linear infinite;
+    top : 250px;
+    text-align: center;
+    box-shadow: 0px 0px 30px grey;
+}
+#loader img{
+    display : block;
+    width : 90%;
+    margin: auto;
+}
+
+@keyframes loader{
+    100%{
+        transform:rotate(360deg);
+    }
+}
+
 #connexion input{
         padding: 3px;
     font-size: 80%;
@@ -264,6 +291,10 @@ width: -moz-available;
 }*/
 
 #logGame {
+    animation-name: animatebottom;
+    animation-duration: 1s;
+    position: relative;
+
     padding: 0;
     margin: 0;
     font-family: sans-serif;
@@ -271,6 +302,10 @@ width: -moz-available;
     background-repeat: no-repeat;
     background-size: cover; /* Resize the background image to cover the entire container */
     
+}
+@keyframes animatebottom{
+    from{bottom: -100px;opacity: 0;}
+    to{bottom: 0px;opacity: 1;}
 }
 
 .containerGame {
@@ -592,3 +627,4 @@ padding: 10px 0px;
 #toolbox input:checked + label[for] {
     box-shadow: blue 0 0 5px;
 }
+

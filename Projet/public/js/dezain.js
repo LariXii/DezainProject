@@ -2,6 +2,7 @@ var nombreAvatar = 11;
 var currentAvatar = 2;
 document.addEventListener('DOMContentLoaded',function(){
 	var socket = io.connect("http://localhost:8080/");
+	
 	var listePartie = [];
 	var user = 'unknown';
 	var nomPartie = null;
@@ -195,6 +196,11 @@ document.addEventListener('DOMContentLoaded',function(){
 			console.log('Createur',user);
 		}
 		if(document.getElementById('nomPartie').value) {
+			function loadPage(){
+				document.getElementById("loader").style.display = "none";
+				document.getElementById("logGame").style.display = "block";
+			}
+			setTimeout(loadPage,2000);
 			nomPartie = document.getElementById('nomPartie').value;
 			var cbs = document.querySelectorAll("#options input[type=checkbox]:checked");
 			var valueCbs = [];
@@ -211,6 +217,7 @@ document.addEventListener('DOMContentLoaded',function(){
 			socket.emit("login", {pseudo: user, avatar: currentAvatar, nomPartie: nomPartie});
 			document.getElementById("radio1").checked = false;
 			document.getElementById("radio2").checked = true;
+			
 			document.getElementById('bcLanceGame').style.display = 'block';
 		}
 		else{
@@ -230,9 +237,15 @@ document.addEventListener('DOMContentLoaded',function(){
 				socket.emit("verif",nomPartie);
 				socket.on("check", function (bool) {
 					if (bool) {
+						function loadPage(){
+							document.getElementById("loader").style.display = "none";
+							document.getElementById("logGame").style.display = "block";
+						}
+						setTimeout(loadPage,2000);
 						socket.emit("login", {pseudo: user, avatar: currentAvatar, nomPartie: nomPartie});
 						document.getElementById("radio3").checked = false;
 						document.getElementById("radio2").checked = true;
+					
 					} else {
 						alert("Nombre maximum de joueur atteint");
 					}
@@ -337,10 +350,15 @@ document.addEventListener('DOMContentLoaded',function(){
 
 	socket.on("message",function(msg){
 		if(msg.find && msg.from !=null){
+			var player2 = document.querySelector('#audioPlayer2');
+			player2.play();
 			document.getElementById("text").innerHTML += "<p style=\"color : green;font-weight:bold;\">"+msg.from+" guessed the word!</p>";
 		}else{
 			if(msg.from != null){
+				
 				document.getElementById("text").innerHTML += "<p>"+msg.from+" : "+msg.text+"</p>";
+				var enonciation = new SpeechSynthesisUtterance (msg.from+" dit "+msg.text);
+				window.speechSynthesis.speak (enonciation);
 			}else{
 				document.getElementById("text").innerHTML += "<p style=\"color : blue;font-weight:bold;\">"+msg.text+"</p>";
 			}
@@ -349,10 +367,20 @@ document.addEventListener('DOMContentLoaded',function(){
 	});
 
 	socket.on('trouveSolution',function(nom){
+		
 		document.getElementById(nom).className = 'player find';
+
 	});
 
 	socket.on('temps',function(tps){
+		var player3 = document.querySelector('#audioPlayer3');
+		if(tps == 11){
+			player3.play();
+		}
+		if(tps == 0){
+			player3.pause();
+			player3.currentTime = 0;
+		}
 		tempsTour = tps;
 		document.getElementById('temps').innerHTML = tps;
 	});
@@ -362,6 +390,7 @@ document.addEventListener('DOMContentLoaded',function(){
 		if(!joueurs.trouveSolution){
 			document.getElementById(joueurs.nom).className = 'player lost';
 		}
+		
 	});
 
 	socket.on('dessinateur',function(lettres){
@@ -371,7 +400,11 @@ document.addEventListener('DOMContentLoaded',function(){
 			g.setAttribute("class", "boxChoix");
 			g.setAttribute("id",i);
 			g.innerHTML = lettres[i].key;
+			var player = document.querySelector('#audioPlayer');
+			player.play();
 			g.addEventListener('click',function(e){
+				player.pause();
+				player.currentTime = 0;
 				var sol = e.currentTarget;
 				socket.emit('lanceTour',{solution : sol.innerText ,nomPartie : nomPartie});
 				document.getElementById("divInformation").innerHTML ="";
@@ -379,6 +412,9 @@ document.addEventListener('DOMContentLoaded',function(){
 				solutionChoisie = sol.id;
 			});
 			afficheSyllabe.appendChild(g);
+			
+			
+			
 		}
 		document.getElementById("divInformation").style.display="block";
 		/*setTimeout(function(){
