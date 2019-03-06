@@ -472,6 +472,8 @@ padding: 10px 0px;
     font-size: x-large;
     font-weight: 500;
     padding: 10px 0px;
+    animation-name: animatebottom;
+    animation-duration: 1s;
 }
 #playerList .avatar{
     position: relative;
@@ -556,6 +558,8 @@ padding: 10px 0px;
     font-size: -webkit-xxx-large;
     font-family: monospace;
     display: none;
+    animation-name: animatebottom;
+    animation-duration: 2s;
 }
 
 #divInformation p {
