@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded',function(){
 	var solutionChoisie = null;
 	var dessin = document.getElementById("dessin");
 	var overlay = document.getElementById('overlay');
+	var player3;
 
 		var ctxBG = dessin.getContext("2d");
 		var ctxFG = overlay.getContext("2d");
@@ -27,7 +28,6 @@ document.addEventListener('DOMContentLoaded',function(){
 			var x = e.clientX - rect.left;
 			var y = e.clientY - rect.top;
 			f.call(currentCommand, x, y);
-			envoiCanvas();
 		};
 		/**
 		 *  Prototype de commande (classe abstraite)
@@ -80,6 +80,9 @@ document.addEventListener('DOMContentLoaded',function(){
 			ctx.beginPath();
 			ctx.arc(x, y, size.value/2, 0, 2*Math.PI);
 			ctx.fill();
+			if(this.isDown){
+				envoiCanvas();
+			}
 		};
 		tracer.move = function(x, y) {
 			// appel classe mère
@@ -107,6 +110,9 @@ document.addEventListener('DOMContentLoaded',function(){
 		gommer.ssFG = "black";
 		gommer.effacer = function(x, y) {
 			ctxBG.clearRect(x - size.value/2, y - size.value/2, size.value, size.value);
+			if(this.isDown){
+				envoiCanvas();
+			}
 		}
 		gommer.move = function(x, y) {
 			this.__proto__.move.call(this, x, y);
@@ -134,6 +140,9 @@ document.addEventListener('DOMContentLoaded',function(){
 			ctx.moveTo(this.startX, this.startY);
 			ctx.lineTo(x, y);
 			ctx.stroke();
+			if(this.isDown){
+				envoiCanvas();
+			}
 		};
 		ligne.move = function(x, y) {
 			this.__proto__.move.call(this, x, y);
@@ -169,6 +178,10 @@ document.addEventListener('DOMContentLoaded',function(){
 		}
 
 	function permetDessin() {
+		var cmd = document.querySelector("#toolbox input[name=radCommande]:checked");
+		console.log(cmd);
+		currentCommand = eval(cmd.id);
+		currentCommand.select();
 		overlay.addEventListener("mousemove", function (e) {
 			act(currentCommand.move, e);
 		});
@@ -195,30 +208,35 @@ document.addEventListener('DOMContentLoaded',function(){
 			user = document.getElementById('pseudoCrea').value;
 			console.log('Createur',user);
 		}
+		console.log(listePartie,'Nom de partie existant ? ',listePartie.includes(nomPartie));
 		if(document.getElementById('nomPartie').value) {
-			function loadPage(){
-				document.getElementById("loader").style.display = "none";
-				document.getElementById("logGame").style.display = "block";
-			}
-			setTimeout(loadPage,2000);
 			nomPartie = document.getElementById('nomPartie').value;
-			var cbs = document.querySelectorAll("#options input[type=checkbox]:checked");
-			var valueCbs = [];
-			for(var i in cbs){
-				if(cbs[i].value)valueCbs.push(cbs[i].value);
+			if(listePartie.includes(nomPartie)){
+				alert('Nom de partie déjà utilisé, veuillez en renseigner un autre');
 			}
-			socket.emit("creerPartie",{
-				createur: user,nomPartie : nomPartie ,nbJoueur: document.getElementById('btnNombreJoueur').value,
-				nbManche: document.getElementById('btnNombreManche').value,
-				tpsTour: document.getElementById('btnDureeTour').value,
-				alphabet : document.querySelector('#options input[name=radGlyphe]:checked').value,
-				cbs : valueCbs
-			});
-			socket.emit("login", {pseudo: user, avatar: currentAvatar, nomPartie: nomPartie});
-			document.getElementById("radio1").checked = false;
-			document.getElementById("radio2").checked = true;
-			
-			document.getElementById('bcLanceGame').style.display = 'block';
+			else{
+				function loadPage(){
+					document.getElementById("loader").style.display = "none";
+					document.getElementById("logGame").style.display = "block";
+				}
+				setTimeout(loadPage,2000);
+				var cbs = document.querySelectorAll("#options input[type=checkbox]:checked");
+				var valueCbs = [];
+				for(var i in cbs){
+					if(cbs[i].value)valueCbs.push(cbs[i].value);
+				}
+				socket.emit("creerPartie",{
+					createur: user,nomPartie : nomPartie ,nbJoueur: document.getElementById('btnNombreJoueur').value,
+					nbManche: document.getElementById('btnNombreManche').value,
+					tpsTour: document.getElementById('btnDureeTour').value,
+					alphabet : document.querySelector('#options input[name=radGlyphe]:checked').value,
+					cbs : valueCbs
+				});
+				socket.emit("login", {pseudo: user, avatar: currentAvatar, nomPartie: nomPartie});
+				document.getElementById("radio1").checked = false;
+				document.getElementById("radio2").checked = true;
+				document.getElementById('bcLanceGame').style.display = 'block';
+			}
 		}
 		else{
 			alert('Nom de partie obligatoire');
@@ -229,7 +247,6 @@ document.addEventListener('DOMContentLoaded',function(){
 		if (document.getElementById('pseudoInv').value) {
 			user = document.getElementById('pseudoInv').value;
 		}
-		if(document.getElementById('nomPartieJ').value) {
 			nomPartie = document.getElementById('nomPartieJ').value;
 			if(listePartie.find(function(element){
 				return element == nomPartie;
@@ -250,14 +267,12 @@ document.addEventListener('DOMContentLoaded',function(){
 						alert("Nombre maximum de joueur atteint");
 					}
 				});
-			}else{
+			}else {
 				alert("La partie que vous essayez de rejoindre n'existe pas");
 			}
-		}
 	});
 
 	document.getElementById("lanceGame").addEventListener("click",function() {
-		console.log('JE LANCE LA PARTIE');
 		socket.emit('lancePartie',nomPartie);
 		document.getElementById('bcLanceGame').style.display = 'none';
 	});
@@ -351,8 +366,11 @@ document.addEventListener('DOMContentLoaded',function(){
 	socket.on("message",function(msg){
 		if(msg.find && msg.from !=null){
 			var player2 = document.querySelector('#audioPlayer2');
+			console.log('Joue son');
 			player2.play();
 			document.getElementById("text").innerHTML += "<p style=\"color : green;font-weight:bold;\">"+msg.from+" guessed the word!</p>";
+			setTimeout(function(){console.log('stop son');player2.pause();
+			player2.currentTime = 0;},350);
 		}else{
 			if(msg.from != null){
 				
@@ -367,13 +385,11 @@ document.addEventListener('DOMContentLoaded',function(){
 	});
 
 	socket.on('trouveSolution',function(nom){
-		
 		document.getElementById(nom).className = 'player find';
-
 	});
 
 	socket.on('temps',function(tps){
-		var player3 = document.querySelector('#audioPlayer3');
+		player3 = document.querySelector('#audioPlayer3');
 		if(tps == 11){
 			player3.play();
 		}
@@ -395,14 +411,16 @@ document.addEventListener('DOMContentLoaded',function(){
 
 	socket.on('dessinateur',function(lettres){
 		var afficheSyllabe = document.getElementById("divInformation");
+		var player = document.querySelector('#audioPlayer');
+		var IDSetTO = setTimeout(function(){player.currentTime = 2;player.play();},5000);
 		for(var i = 0; i<3 ; i++){
 			var g = document.createElement('div');
 			g.setAttribute("class", "boxChoix");
 			g.setAttribute("id",i);
 			g.innerHTML = lettres[i].key;
-			var player = document.querySelector('#audioPlayer');
-			player.play();
 			g.addEventListener('click',function(e){
+				clearTimeout(IDsetTO_2);
+				clearTimeout(IDSetTO);
 				player.pause();
 				player.currentTime = 0;
 				var sol = e.currentTarget;
@@ -412,35 +430,40 @@ document.addEventListener('DOMContentLoaded',function(){
 				solutionChoisie = sol.id;
 			});
 			afficheSyllabe.appendChild(g);
-			
-			
-			
 		}
 		document.getElementById("divInformation").style.display="block";
-		/*setTimeout(function(){
+		var IDsetTO_2 = setTimeout(function(){
+			clearTimeout(IDSetTO);
+			player.pause();
+			player.currentTime = 0;
 			document.getElementById("divInformation").innerHTML ="";
 			document.getElementById("divInformation").style.display="none";
-			var sol =
-			socket.emit('lanceTour',{solution : sol ,nomPartie : nomPartie});
-			
-		},5000);*/
+			var rand = Math.random() * 3 | 0;
+			socket.emit('lanceTour',{solution : lettres[rand].key ,nomPartie : nomPartie});
+			solutionChoisie = rand;
+			document.getElementById("helpOK").innerHTML = lettres[solutionChoisie].key;
+			document.getElementById("helpOK").style.display="block";
+		},15000);
 		dessinateur = true;
 		document.getElementById('toolbox').visible = true;
 		document.getElementById('toolbox').hidden = false;
 		document.getElementById('aide').addEventListener('click',function(){
-			console.log("aide demander");
 			socket.emit('aideDemandee',nomPartie);
 			document.getElementById("helpOK").innerHTML = "&#"+lettres[solutionChoisie].ascii;
 			document.getElementById("helpOK").style.display="block";
 		});
 		document.getElementById("helpOK").style.display="none";
 		document.getElementById('monMessage').disabled = true;
+		var ov = document.getElementById('overlay');
+		ov.style.zIndex = 0;
 		permetDessin();
 	});
 
 	socket.on('joueur',function(){
 		currentCommand = null;
 		dessinateur = false;
+		var ov = document.getElementById('overlay');
+		ov.style.zIndex = -1;
 		document.getElementById('toolbox').hidden = true;
 		document.getElementById('monMessage').disabled = false;
 		enjeu = true;
@@ -517,16 +540,21 @@ document.addEventListener('DOMContentLoaded',function(){
 		}
 	});
 
-	socket.on('finJeu',function(joueurs){
+	socket.on('finJeu',function(ordre,joueurs){
 		var afficheScore = document.getElementById("divInformation");
 		afficheScore.innerHTML ="";
 		afficheScore.style.display = 'block';
 		var h2 = document.createElement('h2');
 		h2.innerHTML = 'FIN DU JEU';
 		afficheScore.appendChild(h2);
+		var div = document.createElement('div');
+		div.innerHTML = "BRAVO "+joueurs[ordre[0]].nom+" \nTU ES LE VAINQUEUR !!";
+		afficheScore.appendChild(div);
 	});
 	
 	socket.on('finTour',function(joueurs){
+		player3.pause();
+		player3.currentTime = 0;
 		document.getElementById('temps').innerHTML = '';
 		ctxBG.clearRect(0, 0, 500, 500);
 		for(var i in joueurs){
@@ -535,7 +563,8 @@ document.addEventListener('DOMContentLoaded',function(){
 	});
 	socket.on('canvas',function(imgURL){
 		if(!dessinateur){
-			var img = new Image;
+			ctxBG.clearRect(0, 0, ctxBG.width, ctxBG.height);
+			var img = new Image();
 			img.src = imgURL;
 			img.onload = function () {
 				ctxBG.drawImage(img, 0, 0);
@@ -545,7 +574,7 @@ document.addEventListener('DOMContentLoaded',function(){
 
 	function envoiCanvas() {
 		var cvs = document.getElementById('dessin').toDataURL();
-		socket.emit('canvas', cvs,nomPartie);
+		socket.emit('canvas',cvs,nomPartie);
 	}
 	
 var arrowL = document.getElementsByClassName('arrowLeft');

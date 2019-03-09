@@ -95,6 +95,9 @@ function Glyphes(glyphes,nomPartie) {
         //Ici cbs devrais contenir les valeurs des inputs
         return Object.keys(glyphes).filter(function (elem, _index, _array) {
             // closure qui s'appuie sur les checkbox qui ont été sélectionnées (cbs)
+            if(serveur.ensemblePartie[nomPartie].cbs.length == 1){
+                return true;
+            }
             for (var i = 0; i < serveur.ensemblePartie[nomPartie].cbs.length; i++) {
                 // on vérifie si la clé (elem) matche la regex définie comme valeur de la checkbox
                 var patt = new RegExp("\\b" + serveur.ensemblePartie[nomPartie].cbs[i] + "\\b", "g");
@@ -142,15 +145,16 @@ class Partie {
         this.joueursManche = [];
         this.ordreJoueur = [];
         this.enJeu = false;
+        this.enTour = false;
         this.enAttente = false;
         this.enScore = false;
         this.nbMancheJouer = 0;
         this.nbJoueur = 0;
         this.manche = null;
         this.socketJoueur = {};
+        this.enAttenteJoueur = false;
         //Jeu.cbs prend cette valeur
         this.cbs = cbs;
-        console.log(cbs);
         this.last = null;
         this.objGlyphes = null;
         //nombre de checkbox valide mais les tableaux sont tous
@@ -184,20 +188,9 @@ class Partie {
         }
         this.nbJoueur--;
         if(this.manche) {
-            this.manche.deconnecterJoueur(joueur);
+            console.log('On déconnecte de la manche');
+            this.manche.deconnecterJoueur(joueur,this.nbJoueur);
         }
-    }
-    jeu() {
-        this.enJeu = true;
-    }
-    finJeu() {
-        this.enJeu = false;
-    }
-    enjeu() {
-        return this.enJeu;
-    }
-    getJoueursManche() {
-        return this.joueursManche;
     }
     lancerManche() {
         this.nbMancheJouer++;
@@ -212,6 +205,7 @@ class Partie {
 
 class Manche {
     constructor(nomPartie){
+        serveur.ensemblePartie[nomPartie].enJeu = true;
         console.log('Nouvelle manche créée');
         this.joueursManche = serveur.ensemblePartie[nomPartie].joueursManche;
         this.ensembleJoueursM = serveur.ensemblePartie[nomPartie].ensembleJoueurs;
@@ -237,7 +231,6 @@ class Manche {
             this.aTrouve = this.objGlyphes.getThreeGlyphes(this.last,this.alphabet);
             // choix du glyphe à deviner parmi les 3
             var rand = Math.random() * 3 | 0;
-            this.last = this.aTrouve[rand].key;
             console.log(this.aTrouve);
     }
     lancerTour(){
@@ -284,6 +277,7 @@ class Manche {
                 if(nbJoueur > 1){
                     console.log('Il reste des joueurs, on calcul les scores');
                     this.tour.Stop();
+                    this.tour.chrono.Stop();
                     this.lancerTour();
                 }
             }
@@ -292,15 +286,13 @@ class Manche {
                 this.tour.Stop();
                 this.fin();
             }
-        console.log("Joueurs en jeu",serveur.ensemblePartie[this.nomPartie].ordreJoueur);
-        console.log('Les joueurs qui doivent jouer sont ',this.joueursManche);
-        console.log("Les joueurs qui n'ont pas encore dessiné sont ",this.nonDessinateur);
     }
     fin(){
+        serveur.ensemblePartie[this.nomPartie].enTour = false;
         serveur.ensemblePartie[this.nomPartie].enJeu = false;
         if(serveur.ensemblePartie[this.nomPartie].nbMancheJouer == serveur.ensemblePartie[this.nomPartie].nbManche){
             for(var i in serveur.ensemblePartie[this.nomPartie].socketJoueur){
-                serveur.ensemblePartie[this.nomPartie].socketJoueur[i].emit('finJeu',this.ensembleJoueursM);
+                serveur.ensemblePartie[this.nomPartie].socketJoueur[i].emit('finJeu',serveur.ensemblePartie[this.nomPartie].ordreJoueur,serveur.ensemblePartie[this.nomPartie].ensembleJoueurs);
             }
             console.log('Fin du jeu');
         }else{
@@ -359,7 +351,7 @@ class Tour  {
     }
 
     Start(solution){
-        serveur.ensemblePartie[this.nomPartie].enJeu = true;
+        serveur.ensemblePartie[this.nomPartie].enTour = true;
         console.log(solution);
         this.solution = new RegExp('^'+solution+'$');
         console.log('Le tour commence');
@@ -367,11 +359,10 @@ class Tour  {
         this.chrono = new Chrono(this.tpsTour,this.nomPartie);
     }
     Stop(){
-        serveur.ensemblePartie[this.nomPartie].enJeu = false;
+        serveur.ensemblePartie[this.nomPartie].enTour = false;
         console.log('Fin du tour');
         this.CalculScore();
         for(var i in serveur.ensemblePartie[this.nomPartie].socketJoueur){
-            console.log("J'envoie les infos");
             serveur.ensemblePartie[this.nomPartie].socketJoueur[i].emit('liste',this.ensembleJoueursT,serveur.ensemblePartie[this.nomPartie].ordreJoueur);
             serveur.ensemblePartie[this.nomPartie].socketJoueur[i].emit('finTour',serveur.ensemblePartie[this.nomPartie].ordreJoueur);
         }
@@ -409,7 +400,6 @@ class Chrono{
         for(var i in serveur.ensemblePartie[this.nomPartie].socketJoueur){
             serveur.ensemblePartie[this.nomPartie].socketJoueur[i].emit('temps',this.secondsLeft);
         }
-        console.log('Il y a ',serveur.ensemblePartie[this.nomPartie].manche.tour.nbBloque,'joueurs bloqué');
         if(serveur.ensemblePartie[this.nomPartie].manche.tour.nbBloque == serveur.ensemblePartie[this.nomPartie].nbJoueur-1){
             this.Stop();
             //On regarde si il reste des dessinateurs potentiel
@@ -426,12 +416,17 @@ class Chrono{
                 //Tps écoulé -> arrêt du timer
                 this.Stop();
                 //On regarde si il reste des dessinateurs potentiel
-                if( serveur.ensemblePartie[this.nomPartie].manche.nonDessinateur.length-1 == 0){
+                if(serveur.ensemblePartie[this.nomPartie].nbJoueur <= 1){
                     serveur.ensemblePartie[this.nomPartie].manche.tour.Stop();
-                    serveur.ensemblePartie[this.nomPartie].manche.fin();
+                    serveur.ensemblePartie[this.nomPartie].enAttenteJoueur = true;
                 }else{
-                    serveur.ensemblePartie[this.nomPartie].manche.tour.Stop();
-                    serveur.ensemblePartie[this.nomPartie].manche.lancerTour();
+                    if( serveur.ensemblePartie[this.nomPartie].manche.nonDessinateur.length-1 == 0){
+                        serveur.ensemblePartie[this.nomPartie].manche.tour.Stop();
+                        serveur.ensemblePartie[this.nomPartie].manche.fin();
+                    }else{
+                        serveur.ensemblePartie[this.nomPartie].manche.tour.Stop();
+                        serveur.ensemblePartie[this.nomPartie].manche.lancerTour();
+                    }
                 }
             }
         }
@@ -509,7 +504,6 @@ io.on('connection', function (socket) {
     });
 
     socket.on('lanceTour',function(solution){
-        console.log('On lance le tour');
         serveur.ensemblePartie[solution.nomPartie].enAttente = false;
         serveur.ensemblePartie[solution.nomPartie].manche.tour.Start(solution.solution);
         for(var i in serveur.ensemblePartie[solution.nomPartie].socketJoueur){
@@ -563,6 +557,9 @@ io.on('connection', function (socket) {
             // envoi de la nouvelle liste à tous les clients connectés
             serveur.ensemblePartie[logJoueur.nomPartie].socketJoueur[i].emit("liste",listJoueur,ordre);
         }
+        if(serveur.ensemblePartie[logJoueur.nomPartie].enAttenteJoueur){
+
+        }
     });
 
     socket.on('canvas',function(img,nomPartie){
@@ -579,7 +576,7 @@ io.on('connection', function (socket) {
      */
     socket.on("message", function(msg) {
         console.log("Reçu message");
-        if(!serveur.ensemblePartie[msg.serv].enjeu()) {
+        if(!serveur.ensemblePartie[msg.serv].enTour) {
             console.log(" --> broadcast");
             for(var i in serveur.ensemblePartie[msg.serv].socketJoueur){
                 serveur.ensemblePartie[msg.serv].socketJoueur[i].emit("message", msg);
@@ -591,14 +588,20 @@ io.on('connection', function (socket) {
                 serveur.ensemblePartie[msg.serv].socketJoueur[msg.from].emit('bloquerChat',serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from]);
                 serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].estBloque = true;
                 serveur.ensemblePartie[msg.serv].manche.tour.bloque();
-
             }
             if(msg.text.match(serveur.ensemblePartie[msg.serv].manche.tour.getSolution())){
                 for(var i in serveur.ensemblePartie[msg.serv].socketJoueur){
                     serveur.ensemblePartie[msg.serv].socketJoueur[i].emit("trouveSolution", msg.from);
                 }
-                console.log(msg.from+" a trouvé la solution il gagne ",parseInt(20 * (msg.temps / serveur.ensemblePartie[msg.serv].tpsTour)),'points');
-                serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].score += parseInt(15 * (msg.temps / serveur.ensemblePartie[msg.serv].tpsTour));
+                if(serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].nombreEssai == 2){
+                    serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].score += 10;
+                }
+                else{
+                    if(serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].nombreEssai == 1){
+                        serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].score += 5;
+                    }
+                }
+                serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].score += parseInt(20 * (msg.temps / serveur.ensemblePartie[msg.serv].tpsTour));
                 serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].trouveSolution = true;
                 if(!serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].estBloque){
                     serveur.ensemblePartie[msg.serv].ensembleJoueurs[msg.from].estBloque = true;
@@ -642,15 +645,13 @@ io.on('connection', function (socket) {
             serveur.ensemblePartie[serv_joueurs[currentID]].deconnecterJoueur(joueur.getNom());
             // envoi de la nouvelle liste pour mise à jour
             for (var i in serveur.ensemblePartie[serv_joueurs[currentID]].socketJoueur) {
-                console.log('HEY');
                 serveur.ensemblePartie[serv_joueurs[currentID]].socketJoueur[i].emit("liste",
                     serveur.ensemblePartie[serv_joueurs[currentID]].socketJoueur[i].ensembleJoueurs,
                     serveur.ensemblePartie[serv_joueurs[currentID]].socketJoueur[i].ordreJoueur);
             }
             console.log("Client déconnecté\nIl reste "+serveur.ensemblePartie[serv_joueurs[currentID]].nbJoueur+" joueur(s)");
-            if(serveur.ensemblePartie[serv_joueurs[currentID]].nbJoueur == 0){
+            if(serveur.ensemblePartie[serv_joueurs[currentID]].nbJoueur === 0){
                 delete serveur.ensemblePartie[serv_joueurs[currentID]];
-                console.log(serveur);
             }
         }
     });
@@ -678,9 +679,8 @@ io.on('connection', function (socket) {
                     serveur.ensemblePartie[serv_joueurs[currentID]].socketJoueur[i].ordreJoueur);
             }
             console.log("Client déconnecté\nIl reste "+serveur.ensemblePartie[serv_joueurs[currentID]].nbJoueur+" joueur(s)");
-            if(serveur.ensemblePartie[serv_joueurs[currentID]].nbJoueur == 0){
+            if(serveur.ensemblePartie[serv_joueurs[currentID]].nbJoueur === 0){
                 delete serveur.ensemblePartie[serv_joueurs[currentID]];
-                console.log(serveur);
             }
         }
     });
